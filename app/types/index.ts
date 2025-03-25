@@ -63,6 +63,13 @@ export interface JournalEntry {
   attachments?: string[]; // מערך URL של קבצים מצורפים
 }
 
+// תיעוד יומי
+export interface DailyLog {
+  id: string;
+  date: Date;
+  content: string;
+}
+
 // מסמך
 export interface Document {
   id: string;
