@@ -88,7 +88,7 @@ export default function CalendarPage() {
         return null;
     }
   };
-
+  
   // טיפול בלחיצה על כפתור "אירוע חדש"
   const handleAddEvent = () => {
     setShowAddEventModal(true);
