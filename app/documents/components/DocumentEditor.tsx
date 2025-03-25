@@ -1,5 +1,5 @@
 import { FiEdit3, FiSave, FiPlus } from 'react-icons/fi';
-import { Document } from '../types';
+import { Document } from '../../types';
 import { renderRichContent } from '../utils/richTextRenderer';
 import { formatDate } from '../utils/dateFormatter';
 

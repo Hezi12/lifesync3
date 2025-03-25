@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Document } from '../types';
+import { Document } from '../../types';
 
 export const useDocuments = () => {
   const [documents, setDocuments] = useState<Document[]>([]);

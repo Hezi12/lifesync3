@@ -1,5 +1,5 @@
 import { FiPlus, FiTrash2 } from 'react-icons/fi';
-import { Document } from '../types';
+import { Document } from '../../types';
 import { formatDate } from '../utils/dateFormatter';
 
 interface DocumentListProps {
