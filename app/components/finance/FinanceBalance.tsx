@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FiArrowUp, FiArrowDown, FiInfo, FiTrash2 } from 'react-icons/fi';
+import { FiArrowUp, FiArrowDown, FiInfo } from 'react-icons/fi';
 import { PaymentMethod, Transaction } from '../../types';
 import BalanceChart from './BalanceChart';
 import { useFinanceContext } from '../../context/FinanceContext';
@@ -128,30 +128,6 @@ const FinanceBalance = () => {
   const openDebts = calculateOpenDebts();
   const openLoans = calculateOpenLoans();
   
-  // מחיקת עסקה - ישירות ללא אישור
-  const deleteTransaction = (id: string) => {
-    const updatedTransactions = transactions.filter(transaction => transaction.id !== id);
-    // עדכון מצב המקומי ושמירה ב-localStorage
-    // שליחת אירוע עדכון
-    const event = new CustomEvent('transactions-updated', { 
-      detail: { transactions: updatedTransactions }
-    });
-    window.dispatchEvent(event);
-  };
-  
-  // מחיקת כל העסקאות - ישירות ללא אישור
-  const clearAllTransactions = () => {
-    // מחיקה מהמצב המקומי
-    // עדכון היסטוריית מצב ההון
-    updateBalanceHistory();
-    
-    // שליחת אירוע עדכון
-    const event = new CustomEvent('transactions-updated', { 
-      detail: { transactions: [] }
-    });
-    window.dispatchEvent(event);
-  };
-  
   return (
     <div className="space-y-6">
       {/* סיכום מצב הון כולל */}
@@ -232,70 +208,6 @@ const FinanceBalance = () => {
         </div>
         
         <BalanceChart data={balanceHistory} />
-      </div>
-      
-      {/* עסקאות אחרונות */}
-      <div className="card">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">עסקאות אחרונות</h2>
-          <button
-            onClick={clearAllTransactions}
-            className="px-3 py-1 text-sm bg-red-100 text-red-600 rounded-md hover:bg-red-200 flex items-center"
-          >
-            <FiTrash2 className="ml-1" size={14} />
-            נקה הכל
-          </button>
-        </div>
-        
-        <div className="space-y-2">
-          {transactions && transactions.length > 0 ? (
-            // מיון עסקאות לפי תאריך (מהחדש לישן) ותצוגת 5 העסקאות האחרונות
-            [...transactions]
-              .sort((a, b) => b.date.getTime() - a.date.getTime())
-              .slice(0, 5)
-              .map((transaction) => {
-                const method = paymentMethods.find(m => m.id === transaction.paymentMethodId);
-                
-                return (
-                  <div key={transaction.id} className="flex items-center justify-between p-3 border rounded-md">
-                    <div className="flex items-center">
-                      <div 
-                        className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 text-xl ${
-                          transaction.type === 'income' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
-                        }`}
-                      >
-                        {transaction.type === 'income' ? <FiArrowUp /> : <FiArrowDown />}
-                      </div>
-                      <div>
-                        <p className="font-medium">{transaction.description}</p>
-                        <p className="text-gray-500 text-sm">
-                          {transaction.date.getDate()}/{transaction.date.getMonth() + 1}/{transaction.date.getFullYear()} • {method?.name || 'אמצעי תשלום לא ידוע'}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center">
-                      <div className={`text-lg font-semibold mr-4 ${
-                        transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {transaction.type === 'income' ? '+' : '-'}₪{transaction.amount.toLocaleString()}
-                      </div>
-                      
-                      <button
-                        onClick={() => deleteTransaction(transaction.id)}
-                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded-full"
-                        title="מחק עסקה"
-                      >
-                        <FiTrash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-          ) : (
-            <p className="text-center text-gray-500 py-4">אין עסקאות לתצוגה</p>
-          )}
-        </div>
       </div>
     </div>
   );
