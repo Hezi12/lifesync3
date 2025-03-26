@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>בדיקת localStorage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            direction: ltr;
+            text-align: left;
+        }
+        .item {
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        h2 {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>תוכן ה-localStorage</h1>
+    <div id="output"></div>
+    
+    <script>
+        const output = document.getElementById('output');
+        
+        function displayLocalStorage() {
+            // מחיקת תוכן קודם
+            output.innerHTML = '';
+            
+            // אם אין פריטים ב-localStorage
+            if (localStorage.length === 0) {
+                output.innerHTML = '<p>אין פריטים ב-localStorage</p>';
+                return;
+            }
+            
+            // עבור על כל הפריטים ב-localStorage
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                let value = localStorage.getItem(key);
+                
+                // ניסיון לפרש JSON אם אפשר
+                try {
+                    const parsedValue = JSON.parse(value);
+                    value = JSON.stringify(parsedValue, null, 2);
+                } catch (e) {
+                    // אם לא JSON, להשאיר כמחרוזת
+                }
+                
+                // יצירת אלמנט להצגת המידע
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'item';
+                
+                const title = document.createElement('h2');
+                title.textContent = key;
+                
+                const content = document.createElement('pre');
+                content.textContent = value;
+                
+                itemDiv.appendChild(title);
+                itemDiv.appendChild(content);
+                output.appendChild(itemDiv);
+            }
+        }
+        
+        // הצגת המידע בטעינת הדף
+        displayLocalStorage();
+    </script>
+</body>
+</html> 
