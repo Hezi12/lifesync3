@@ -124,16 +124,90 @@ const FinanceSettings = () => {
   
   // אייקונים פופולריים לבחירה
   const popularIcons = [
-    '💰', '💵', '💳', '💲', '🏦', '🪙', '📈', '📉', '🛒', '🛍️', '🍔', '🍕', 
-    '🏠', '🚗', '⛽', '🚌', '✈️', '🏥', '💊', '👕', '👖', '📱', '💻', '🎮',
-    '📚', '🎬', '🎭', '🎵', '🏋️', '🎁', '👶', '🏫', '📝', '💼', '🔧', '🧹'
+    // כסף ובנקאות
+    '💰', '💵', '💸', '💳', '💴', '💶', '💷', '🏦', '🪙', '💹', '📈', '📉', '🧾', '🏧',
+    
+    // קניות ומזון
+    '🛒', '🛍️', '🧺', '🛒', '🏪', '🏬', 
+    '🍔', '🍕', '🍟', '🌭', '🍿', '🥤', '🍦', '🍩', '🍰', '☕', '🍷', '🍺', '🍱', '🥗', '🥘', '🍲', '🥡',
+    
+    // בית וחשבונות
+    '🏠', '🏡', '🏢', '🏣', '🏘️', '🏚️', '🪑', '🛋️', '🛏️', '🚿', '🧹', '🧺', '🧼', '🧽', '💡', '💸', '📝',
+    
+    // תחבורה
+    '🚗', '🚙', '🏎️', '🚕', '🚌', '🚎', '🚐', '🚓', '🚑', '🚒', '🚚', '🛵', '🏍️', '🚲', '🚁', '✈️', '🚢', '🚆', '🚉', '🚏', '⛽', '🛣️',
+    
+    // בריאות
+    '🏥', '💊', '💉', '🩺', '🩹', '🧬', '👨‍⚕️', '👩‍⚕️', '🦷', '👁️', '🤒', '😷', '🧠', '🫀', '🫁', '🦴', '🦾', '🧘‍♂️', '🧘‍♀️',
+    
+    // ביגוד ואופנה
+    '👕', '👖', '👔', '👗', '👘', '👚', '👛', '👜', '👝', '🧣', '🧤', '🧥', '🧦', '👞', '👟', '👠', '👡', '👢', '👒', '🎩', '👑', '💍', '⌚', '🕶️',
+    
+    // טכנולוגיה ומחשבים
+    '📱', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🔌', '💾', '💿', '📀', '📼', '📷', '📹', '🎥', '📽️', '📺', '📻', '📟', '📞', '☎️', '📠', '⏰',
+    
+    // בידור וספורט
+    '🎮', '🕹️', '🎯', '🎲', '🧩', '🎨', '🎭', '🎬', '🎤', '🎧', '🎷', '🎸', '🎹', '🎺', '🎻', '🥁', '🎬', '🏋️', '🤸', '⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🎱', '🏓', '🏸', 
+    
+    // חינוך ועבודה
+    '📚', '📖', '📝', '✏️', '🖊️', '🖋️', '✒️', '🖌️', '🖍️', '📏', '📐', '📓', '📔', '📒', '📕', '📗', '📘', '📙', '📋', '📊', '📇', '🗂️', '📂', '📁', '📰', '🗞️', '📑',
+    '💼', '🗄️', '📌', '📎', '📏',
+    
+    // מיסים וממשלה
+    '🏛️', '⚖️', '📜', '📃', '📄', '📑', '🔐', '🗝️',
+    
+    // חופשה ופנאי
+    '🏖️', '🏝️', '🏕️', '🏔️', '⛰️', '🏞️', '🏜️', '🌋', '🗻', '🏯', '🏰', '🛕', '⛪', '🕌', '🕍', '⛩️', '🏙️', 
+    
+    // משפחה
+    '👨‍👩‍👧‍👦', '👨‍👩‍👧', '👨‍👩‍👦', '👶', '🧒', '👦', '👧', '🧑', '👩', '👨', '👵', '👴',
+    
+    // שונות
+    '🎁', '🎀', '🎈', '🎊', '🎉', '🧶', '🧵', '🔨', '🪓', '⛏️', '⚒️', '🛠️', '🧰', '🔧', '🪛', '🪚', '🪝', '🪜', '🧯',
   ];
   
   // צבעים פופולריים לבחירה
   const popularColors = [
-    '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', 
-    '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1',
-    '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#64748b'
+    // אדומים
+    '#ef4444', '#dc2626', '#b91c1c', '#991b1b', '#7f1d1d', '#fecaca', '#fca5a5', '#f87171',
+    
+    // כתומים
+    '#f97316', '#ea580c', '#c2410c', '#9a3412', '#7c2d12', '#fed7aa', '#fdba74', '#fb923c',
+    
+    // צהובים
+    '#f59e0b', '#d97706', '#b45309', '#92400e', '#78350f', '#fef3c7', '#fde68a', '#fcd34d',
+    '#eab308', '#ca8a04', '#a16207', '#854d0e', '#713f12', '#fef9c3', '#fef08a', '#fde047',
+    
+    // ירוקים
+    '#84cc16', '#65a30d', '#4d7c0f', '#3f6212', '#365314', '#d9f99d', '#bef264', '#a3e635',
+    '#22c55e', '#16a34a', '#15803d', '#166534', '#14532d', '#bbf7d0', '#86efac', '#4ade80',
+    '#10b981', '#059669', '#047857', '#065f46', '#064e3b', '#a7f3d0', '#6ee7b7', '#34d399',
+    
+    // תכלת וטורקיז
+    '#14b8a6', '#0d9488', '#0f766e', '#115e59', '#134e4a', '#b9e4e0', '#5eead4', '#2dd4bf',
+    '#06b6d4', '#0891b2', '#0e7490', '#155e75', '#164e63', '#cffafe', '#a5f3fc', '#67e8f9',
+    
+    // כחולים
+    '#0ea5e9', '#0284c7', '#0369a1', '#075985', '#0c4a6e', '#bae6fd', '#7dd3fc', '#38bdf8',
+    '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af', '#1e3a8a', '#bfdbfe', '#93c5fd', '#60a5fa',
+    '#6366f1', '#4f46e5', '#4338ca', '#3730a3', '#312e81', '#c7d2fe', '#a5b4fc', '#818cf8',
+    
+    // סגולים
+    '#8b5cf6', '#7c3aed', '#6d28d9', '#5b21b6', '#4c1d95', '#ddd6fe', '#c4b5fd', '#a78bfa',
+    '#a855f7', '#9333ea', '#7e22ce', '#6b21a8', '#581c87', '#e9d5ff', '#d8b4fe', '#c084fc',
+    
+    // ורודים
+    '#d946ef', '#c026d3', '#a21caf', '#86198f', '#701a75', '#f5d0fe', '#f0abfc', '#e879f9',
+    '#ec4899', '#db2777', '#be185d', '#9d174d', '#831843', '#fbcfe8', '#f9a8d4', '#f472b6',
+    
+    // אדום-וורודים
+    '#f43f5e', '#e11d48', '#be123c', '#9f1239', '#881337', '#fee2e2', '#fecdd3', '#fda4af',
+    
+    // חומים
+    '#78350f', '#92400e', '#b45309', '#d97706', '#a16207', '#fbbf24', '#d9f99d', '#f59e0b',
+    
+    // אפורים
+    '#64748b', '#475569', '#334155', '#1e293b', '#0f172a', '#cbd5e1', '#94a3b8', '#64748b',
   ];
   
   // הוספת מילת מפתח לאמצעי תשלום
@@ -239,44 +313,44 @@ const FinanceSettings = () => {
                           
                           <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">אייקון</label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {popularIcons.slice(0, 10).map((icon) => (
-                              <button
+                  <div className="grid grid-cols-10 gap-2 mb-2 max-h-40 overflow-y-auto p-2 border rounded-md">
+                    {popularIcons.map((icon) => (
+                      <button
                         key={icon}
-                                type="button"
+                        type="button"
                         className={`w-8 h-8 flex items-center justify-center rounded-md ${
                           newPaymentMethod.icon === icon ? 'bg-primary-100 border-2 border-primary-500' : 'bg-white border border-gray-300'
-                                }`}
+                        }`}
                         onClick={() => setNewPaymentMethod({ ...newPaymentMethod, icon })}
-                              >
-                                {icon}
-                              </button>
-                            ))}
-                          </div>
+                      >
+                        {icon}
+                      </button>
+                    ))}
+                  </div>
                   <input
                     type="text"
                     value={newPaymentMethod.icon}
                     onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, icon: e.target.value })}
                     className="w-full p-2 border rounded-md"
                     placeholder="אמוג'י"
-                    maxLength={2}
+                    maxLength={8}
                   />
                         </div>
                         
                         <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">צבע</label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {popularColors.slice(0, 10).map((color) => (
-                              <button
+                  <div className="grid grid-cols-10 gap-2 mb-2 max-h-40 overflow-y-auto p-2 border rounded-md">
+                    {popularColors.map((color) => (
+                      <button
                         key={color}
-                                type="button"
+                        type="button"
                         className={`w-8 h-8 rounded-md ${
                           newPaymentMethod.color === color ? 'ring-2 ring-primary-500' : ''
-                                }`}
-                                style={{ backgroundColor: color }}
+                        }`}
+                        style={{ backgroundColor: color }}
                         onClick={() => setNewPaymentMethod({ ...newPaymentMethod, color })}
-                              />
-                            ))}
+                      />
+                    ))}
                   </div>
                   <input
                     type="color"
@@ -493,44 +567,44 @@ const FinanceSettings = () => {
                         
                         <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">אייקון</label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {popularIcons.map((icon, index) => index < 10 && (
-                              <button
+                  <div className="grid grid-cols-10 gap-2 mb-2 max-h-40 overflow-y-auto p-2 border rounded-md">
+                    {popularIcons.map((icon) => (
+                      <button
                         key={icon}
-                                type="button"
+                        type="button"
                         className={`w-8 h-8 flex items-center justify-center rounded-md ${
                           newCategory.icon === icon ? 'bg-primary-100 border-2 border-primary-500' : 'bg-white border border-gray-300'
-                                }`}
+                        }`}
                         onClick={() => setNewCategory({ ...newCategory, icon })}
-                              >
-                                {icon}
-                              </button>
-                            ))}
-                          </div>
+                      >
+                        {icon}
+                      </button>
+                    ))}
+                  </div>
                   <input
                     type="text"
                     value={newCategory.icon}
                     onChange={(e) => setNewCategory({ ...newCategory, icon: e.target.value })}
                     className="w-full p-2 border rounded-md"
                     placeholder="אמוג'י"
-                    maxLength={2}
+                    maxLength={8}
                   />
                         </div>
                         
                         <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">צבע</label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {popularColors.map((color, index) => index < 10 && (
-                              <button
+                  <div className="grid grid-cols-10 gap-2 mb-2 max-h-40 overflow-y-auto p-2 border rounded-md">
+                    {popularColors.map((color) => (
+                      <button
                         key={color}
-                                type="button"
+                        type="button"
                         className={`w-8 h-8 rounded-md ${
                           newCategory.color === color ? 'ring-2 ring-primary-500' : ''
-                                }`}
-                                style={{ backgroundColor: color }}
+                        }`}
+                        style={{ backgroundColor: color }}
                         onClick={() => setNewCategory({ ...newCategory, color })}
-                              />
-                            ))}
+                      />
+                    ))}
                   </div>
                   <input
                     type="color"
