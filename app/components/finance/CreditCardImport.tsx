@@ -81,13 +81,40 @@ const CreditCardImport = () => {
         )
       );
       
+      // הפוך את שם העסק לאותיות קטנות לחיפוש מדויק יותר
+      const businessNameLower = charge.businessName.toLowerCase();
+      console.log(`בודק זיהוי קטגוריה עבור בית עסק: "${charge.businessName}"`);
+      
       // זיהוי קטגוריה לפי שם בית העסק
-      const category = categories.find(category => 
-        category.type === 'expense' && // רק קטגוריות של הוצאות
-        category.keywords?.some(keyword => 
-          charge.businessName.toLowerCase().includes(keyword.toLowerCase())
-        )
-      );
+      let matchedCategory = null;
+      
+      // עבור על כל הקטגוריות ובדוק אם שם העסק מכיל את אחת ממילות המפתח
+      for (const category of categories) {
+        // בדיקה רק על קטגוריות של הוצאות
+        if (category.type !== 'expense') continue;
+        
+        // אם אין מילות מפתח, דלג
+        if (!category.keywords || category.keywords.length === 0) continue;
+        
+        // בדוק כל מילת מפתח
+        for (const keyword of category.keywords) {
+          const keywordLower = keyword.toLowerCase().trim();
+          
+          // אם מצאנו התאמה
+          if (keywordLower && businessNameLower.includes(keywordLower)) {
+            console.log(`נמצאה התאמה: בית עסק "${charge.businessName}" מכיל את מילת המפתח "${keyword}" של הקטגוריה "${category.name}"`);
+            matchedCategory = category;
+            break;
+          }
+        }
+        
+        // אם מצאנו התאמה, אין צורך להמשיך לחפש
+        if (matchedCategory) break;
+      }
+      
+      if (!matchedCategory) {
+        console.log(`לא נמצאה קטגוריה מתאימה לבית העסק "${charge.businessName}"`);
+      }
       
       // יצירת עסקה חדשה
       const transaction: Transaction = {
@@ -95,7 +122,7 @@ const CreditCardImport = () => {
         amount: charge.chargeAmount,
         date: new Date(charge.chargeDate),
         description: charge.businessName,
-        categoryId: category?.id || categories.find(c => c.type === 'expense')?.id || '',
+        categoryId: matchedCategory?.id || categories.find(c => c.type === 'expense')?.id || '',
         paymentMethodId: paymentMethod?.id || paymentMethods[0]?.id || '',
         type: 'expense'
       };
@@ -103,7 +130,7 @@ const CreditCardImport = () => {
       return {
         charge,
         paymentMethodId: paymentMethod?.id || null,
-        categoryId: category?.id || null,
+        categoryId: matchedCategory?.id || null,
         transaction
       };
     });
@@ -193,19 +220,68 @@ const CreditCardImport = () => {
         // המרת הנתונים לפורמט הפנימי שלנו
         const charges: CreditCardCharge[] = jsonData.map((row: any, index) => {
           // ניקוי והמרת הסכום למספר
-          const amountStr = row[chargeAmountField!].toString().replace(/[^\d.-]/g, '');
-          const amount = parseFloat(amountStr);
+          let amountStr = "";
+          try {
+            amountStr = row[chargeAmountField!].toString().replace(/[^\d.-]/g, '');
+          } catch (e) {
+            amountStr = "0";
+            console.error("שגיאה בהמרת סכום החיוב:", e);
+          }
+          const amount = parseFloat(amountStr) || 0;
           
-          // שם בית העסק - לוודא שמזהים נכון, לקחת שדה רלוונטי
-          let businessName = row[businessNameField!].toString();
+          // טיפול בשם בית עסק
+          let businessNameValue = "";
+          try {
+            businessNameValue = row[businessNameField!].toString() || "";
+            if (!businessNameValue) {
+              console.warn(`שורה ${index + 2}: שם בית עסק ריק או לא קיים`);
+              businessNameValue = "בית עסק לא ידוע";
+            }
+          } catch (e) {
+            console.error("שגיאה בהמרת שם בית העסק:", e);
+            businessNameValue = "בית עסק לא ידוע";
+          }
+          
+          // טיפול במספר כרטיס
+          let cardNumberValue = "";
+          try {
+            cardNumberValue = row[cardNumberField!].toString() || "";
+            if (!cardNumberValue) {
+              console.warn(`שורה ${index + 2}: מספר כרטיס ריק או לא קיים`);
+              cardNumberValue = "0000";
+            }
+          } catch (e) {
+            console.error("שגיאה בהמרת מספר כרטיס:", e);
+            cardNumberValue = "0000";
+          }
+          
+          // טיפול בתאריך חיוב
+          let chargeDateValue = "";
+          try {
+            chargeDateValue = row[chargeDateField!].toString() || "";
+            if (!chargeDateValue) {
+              console.warn(`שורה ${index + 2}: תאריך חיוב ריק או לא קיים`);
+              chargeDateValue = new Date().toISOString();
+            }
+          } catch (e) {
+            console.error("שגיאה בהמרת תאריך חיוב:", e);
+            chargeDateValue = new Date().toISOString();
+          }
+          
+          console.log(`נתוני שורה ${index + 2}:`, {
+            businessName: businessNameValue,
+            cardNumber: cardNumberValue,
+            chargeDate: chargeDateValue,
+            chargeAmount: amount
+          });
           
           return {
-            cardNumber: row[cardNumberField!].toString(),
+            cardNumber: cardNumberValue,
             transactionDate: '', // לא בשימוש
-            businessName: businessName,
+            businessName: businessNameValue,
             transactionAmount: 0, // לא בשימוש
             chargeAmount: amount,
-            chargeDate: row[chargeDateField!].toString(),
+            chargeDate: chargeDateValue,
             currency: 'ILS', // תמיד בשקלים
             rowIndex: index + 2 // +2 כי האינדקס מתחיל מ-0 ויש שורת כותרת
           };
@@ -337,13 +413,59 @@ const CreditCardImport = () => {
         }
         const amount = parseFloat(amountStr) || 0;
         
+        // טיפול בשם בית עסק
+        let businessNameValue = "";
+        try {
+          businessNameValue = row[businessName]?.toString() || "";
+          if (!businessNameValue) {
+            console.warn(`שורה ${index + 2}: שם בית עסק ריק או לא קיים`);
+            businessNameValue = "בית עסק לא ידוע";
+          }
+        } catch (e) {
+          console.error("שגיאה בהמרת שם בית העסק:", e);
+          businessNameValue = "בית עסק לא ידוע";
+        }
+        
+        // טיפול במספר כרטיס
+        let cardNumberValue = "";
+        try {
+          cardNumberValue = row[cardNumber]?.toString() || "";
+          if (!cardNumberValue) {
+            console.warn(`שורה ${index + 2}: מספר כרטיס ריק או לא קיים`);
+            cardNumberValue = "0000";
+          }
+        } catch (e) {
+          console.error("שגיאה בהמרת מספר כרטיס:", e);
+          cardNumberValue = "0000";
+        }
+        
+        // טיפול בתאריך חיוב
+        let chargeDateValue = "";
+        try {
+          chargeDateValue = row[chargeDate]?.toString() || "";
+          if (!chargeDateValue) {
+            console.warn(`שורה ${index + 2}: תאריך חיוב ריק או לא קיים`);
+            chargeDateValue = new Date().toISOString();
+          }
+        } catch (e) {
+          console.error("שגיאה בהמרת תאריך חיוב:", e);
+          chargeDateValue = new Date().toISOString();
+        }
+        
+        console.log(`נתוני שורה ${index + 2}:`, {
+          businessName: businessNameValue,
+          cardNumber: cardNumberValue,
+          chargeDate: chargeDateValue,
+          chargeAmount: amount
+        });
+        
         return {
-          cardNumber: row[cardNumber].toString(),
+          cardNumber: cardNumberValue,
           transactionDate: '', // לא בשימוש
-          businessName: row[businessName].toString(),
+          businessName: businessNameValue,
           transactionAmount: 0, // לא בשימוש
           chargeAmount: amount,
-          chargeDate: row[chargeDate].toString(),
+          chargeDate: chargeDateValue,
           currency: 'ILS', // תמיד בשקלים
           rowIndex: index + 2 // +2 כי האינדקס מתחיל מ-0 ויש שורת כותרת
         };
@@ -501,57 +623,90 @@ const CreditCardImport = () => {
                 </tr>
               </thead>
               <tbody>
-                {mappedCharges.map((item, index) => (
-                  <tr key={index} className="border-t border-gray-200 hover:bg-gray-50">
-                    <td className="py-2 px-3">{item.charge.businessName}</td>
-                    <td className="py-2 px-3">{new Date(item.charge.chargeDate).toLocaleDateString('he-IL')}</td>
-                    <td className="py-2 px-3 text-left">{item.charge.chargeAmount.toFixed(2)} ₪</td>
-                    <td className="py-2 px-3">{item.charge.cardNumber}</td>
-                    <td className="py-2 px-3">
-                      <select
-                        className="w-full p-1 border rounded"
-                        value={item.transaction.paymentMethodId}
-                        onChange={(e) => {
-                          const updatedMappedCharges = [...mappedCharges];
-                          updatedMappedCharges[index].transaction.paymentMethodId = e.target.value;
-                          setMappedCharges(updatedMappedCharges);
-                        }}
-                      >
-                        {paymentMethods.map((method) => (
-                          <option key={method.id} value={method.id}>{method.name}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="py-2 px-3">
-                      <select
-                        className="w-full p-1 border rounded"
-                        value={item.transaction.categoryId}
-                        onChange={(e) => {
-                          const updatedMappedCharges = [...mappedCharges];
-                          updatedMappedCharges[index].transaction.categoryId = e.target.value;
-                          setMappedCharges(updatedMappedCharges);
-                        }}
-                      >
-                        {categories
-                          .filter(category => category.type === 'expense')
-                          .map((category) => (
-                            <option key={category.id} value={category.id}>{category.name}</option>
+                {mappedCharges.map((item, index) => {
+                  // מציאת הקטגוריה והאייקון שלה
+                  const category = categories.find(c => c.id === item.transaction.categoryId);
+                  // מציאת אמצעי התשלום והאייקון שלו
+                  const paymentMethod = paymentMethods.find(p => p.id === item.transaction.paymentMethodId);
+                  
+                  return (
+                    <tr key={index} className="border-t border-gray-200 hover:bg-gray-50">
+                      <td className="py-2 px-3">{item.charge.businessName}</td>
+                      <td className="py-2 px-3">{new Date(item.charge.chargeDate).toLocaleDateString('he-IL')}</td>
+                      <td className="py-2 px-3 text-left">{item.charge.chargeAmount.toFixed(2)} ₪</td>
+                      <td className="py-2 px-3">{item.charge.cardNumber}</td>
+                      <td className="py-2 px-3">
+                        <select
+                          className="w-full p-1 border rounded"
+                          value={item.transaction.paymentMethodId}
+                          onChange={(e) => {
+                            const updatedMappedCharges = [...mappedCharges];
+                            updatedMappedCharges[index].transaction.paymentMethodId = e.target.value;
+                            setMappedCharges(updatedMappedCharges);
+                          }}
+                        >
+                          {paymentMethods.map((method) => (
+                            <option key={method.id} value={method.id}>
+                              {method.icon} {method.name}
+                            </option>
                           ))}
-                      </select>
-                    </td>
-                    <td className="py-2 px-3">
-                      <button
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() => {
-                          const updatedMappedCharges = mappedCharges.filter((_, i) => i !== index);
-                          setMappedCharges(updatedMappedCharges);
-                        }}
-                      >
-                        <FiTrash2 className="h-5 w-5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                        </select>
+                        {paymentMethod && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            זוהה לפי: {paymentMethod.keywords?.find(keyword => 
+                              item.charge.cardNumber.includes(keyword)
+                            ) || "ברירת מחדל"}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-2 px-3">
+                        <select
+                          className="w-full p-1 border rounded"
+                          value={item.transaction.categoryId}
+                          onChange={(e) => {
+                            const updatedMappedCharges = [...mappedCharges];
+                            updatedMappedCharges[index].transaction.categoryId = e.target.value;
+                            setMappedCharges(updatedMappedCharges);
+                          }}
+                        >
+                          {categories
+                            .filter(category => category.type === 'expense')
+                            .map((category) => (
+                              <option key={category.id} value={category.id}>
+                                {category.icon} {category.name}
+                              </option>
+                            ))}
+                        </select>
+                        {category && category.keywords && category.keywords.length > 0 && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {category.keywords.some(keyword => 
+                              item.charge.businessName.toLowerCase().includes(keyword.toLowerCase())
+                            ) ? (
+                              <span>
+                                זוהה לפי: {category.keywords.find(keyword => 
+                                  item.charge.businessName.toLowerCase().includes(keyword.toLowerCase())
+                                )}
+                              </span>
+                            ) : (
+                              <span>קטגוריה לא זוהתה אוטומטית</span>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-2 px-3">
+                        <button
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => {
+                            const updatedMappedCharges = mappedCharges.filter((_, i) => i !== index);
+                            setMappedCharges(updatedMappedCharges);
+                          }}
+                        >
+                          <FiTrash2 className="h-5 w-5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
