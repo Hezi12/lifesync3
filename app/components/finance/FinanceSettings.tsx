@@ -27,6 +27,7 @@ const FinanceSettings = () => {
     color: '#6366f1',
     initialBalance: 0,
     currentBalance: 0,
+    initialDate: new Date(),
     keywords: []
   });
   
@@ -54,14 +55,14 @@ const FinanceSettings = () => {
       if (editingPaymentMethodId) {
         // עדכון שיטת תשלום קיימת
         await updatePaymentMethod(newPaymentMethod);
-    } else {
+      } else {
         // הוספת שיטת תשלום חדשה
         await addPaymentMethod(newPaymentMethod);
-    }
-    
+      }
+      
       // איפוס טופס העריכה
       resetPaymentMethodForm();
-      } catch (error) {
+    } catch (error) {
       console.error('שגיאה בשמירת שיטת תשלום:', error);
       alert('אירעה שגיאה בשמירת שיטת התשלום');
     }
@@ -76,6 +77,7 @@ const FinanceSettings = () => {
       color: '#6366f1',
       initialBalance: 0,
       currentBalance: 0,
+      initialDate: new Date(),
       keywords: []
     });
     setEditingPaymentMethodId(null);
@@ -96,13 +98,13 @@ const FinanceSettings = () => {
         // עדכון קטגוריה קיימת
         await updateCategory(newCategory);
       } else {
-  // הוספת קטגוריה חדשה
+        // הוספת קטגוריה חדשה
         await addCategory(newCategory);
       }
       
       // איפוס טופס העריכה
       resetCategoryForm();
-      } catch (error) {
+    } catch (error) {
       console.error('שגיאה בשמירת קטגוריה:', error);
       alert('אירעה שגיאה בשמירת הקטגוריה');
     }
@@ -213,22 +215,19 @@ const FinanceSettings = () => {
   // הוספת מילת מפתח לאמצעי תשלום
   const addPaymentMethodKeyword = (keyword: string) => {
     if (!keyword.trim()) return;
+    if ((newPaymentMethod.keywords || []).includes(keyword)) return;
     
-    const keywords = newPaymentMethod.keywords || [];
-    if (!keywords.includes(keyword.trim())) {
-      setNewPaymentMethod({
-        ...newPaymentMethod,
-        keywords: [...keywords, keyword.trim()]
-      });
-    }
+    setNewPaymentMethod({
+      ...newPaymentMethod,
+      keywords: [...(newPaymentMethod.keywords || []), keyword.trim()]
+    });
   };
   
   // הסרת מילת מפתח מאמצעי תשלום
-  const removePaymentMethodKeyword = (keywordToRemove: string) => {
-    const keywords = newPaymentMethod.keywords || [];
+  const removePaymentMethodKeyword = (keyword: string) => {
     setNewPaymentMethod({
       ...newPaymentMethod,
-      keywords: keywords.filter(keyword => keyword !== keywordToRemove)
+      keywords: (newPaymentMethod.keywords || []).filter(k => k !== keyword)
     });
   };
   
@@ -299,34 +298,34 @@ const FinanceSettings = () => {
                 {editingPaymentMethodId ? 'עריכת אמצעי תשלום' : 'הוספת אמצעי תשלום חדש'}
               </h4>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">שם</label>
-                <input
-                  type="text"
+                  <input
+                    type="text"
                     value={newPaymentMethod.name}
                     onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, name: e.target.value })}
                     className="w-full p-2 border rounded-md"
                     placeholder="לדוגמה: מזומן, אשראי, PayPal"
-                />
-              </div>
-              
-              <div>
+                  />
+                </div>
+                
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">אייקון</label>
                   <div className="grid grid-cols-10 gap-2 mb-2 max-h-40 overflow-y-auto p-2 border rounded-md">
                     {popularIcons.map((icon) => (
-                  <button
+                      <button
                         key={icon}
-                    type="button"
+                        type="button"
                         className={`w-8 h-8 flex items-center justify-center rounded-md ${
                           newPaymentMethod.icon === icon ? 'bg-primary-100 border-2 border-primary-500' : 'bg-white border border-gray-300'
                         }`}
                         onClick={() => setNewPaymentMethod({ ...newPaymentMethod, icon })}
-                  >
-                    {icon}
-                  </button>
-                ))}
-              </div>
+                      >
+                        {icon}
+                      </button>
+                    ))}
+                  </div>
                   <input
                     type="text"
                     value={newPaymentMethod.icon}
@@ -335,122 +334,140 @@ const FinanceSettings = () => {
                     placeholder="אמוג'י"
                     maxLength={8}
                   />
-            </div>
-            
-            <div>
+                </div>
+                
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">צבע</label>
                   <div className="grid grid-cols-10 gap-2 mb-2 max-h-40 overflow-y-auto p-2 border rounded-md">
                     {popularColors.map((color) => (
-                  <button
+                      <button
                         key={color}
-                    type="button"
+                        type="button"
                         className={`w-8 h-8 rounded-md ${
                           newPaymentMethod.color === color ? 'ring-2 ring-primary-500' : ''
-                    }`}
-                    style={{ backgroundColor: color }}
+                        }`}
+                        style={{ backgroundColor: color }}
                         onClick={() => setNewPaymentMethod({ ...newPaymentMethod, color })}
-                  />
-                ))}
-              </div>
-                            <input
+                      />
+                    ))}
+                  </div>
+                  <input
                     type="color"
                     value={newPaymentMethod.color}
                     onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, color: e.target.value })}
                     className="w-full p-1 h-10 border rounded-md"
-                            />
-                          </div>
-                          
-                          <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">יתרה התחלתית</label>
-                              <input
-                                type="number"
-                    value={newPaymentMethod.initialBalance}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value);
-                      setNewPaymentMethod({ 
-                        ...newPaymentMethod, 
-                        initialBalance: value,
-                        // עדכון יתרה נוכחית גם כן אם זו שיטת תשלום חדשה
-                        currentBalance: editingPaymentMethodId ? newPaymentMethod.currentBalance : value 
-                      });
-                    }}
-                    className="w-full p-2 border rounded-md"
-                    placeholder="0"
                   />
-                          </div>
-                        </div>
-                        
-                        <div className="md:col-span-2">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            מילות מפתח לזיהוי אוטומטי
-                            <span className="mr-1 text-xs text-gray-500">(לדוגמה: 4 ספרות אחרונות של כרטיס אשראי)</span>
-                          </label>
-                          
-                          <div className="flex flex-wrap gap-2 mb-2">
-                            {(newPaymentMethod.keywords || []).map((keyword, index) => (
-                              <div 
-                                key={index}
-                                className="px-2 py-1 bg-primary-100 text-primary-800 rounded-md flex items-center"
-                              >
-                                <span>{keyword}</span>
-                                <button 
-                                type="button"
-                                  className="ml-1 text-primary-600 hover:text-primary-800"
-                                  onClick={() => removePaymentMethodKeyword(keyword)}
-                                >
-                                  <FiX size={16} />
-                              </button>
-                              </div>
-                            ))}
-                        </div>
-                        
-                          <div className="flex">
-                            <input
-                              type="text"
-                              id="newPaymentMethodKeyword"
-                              placeholder="הוסף מילת מפתח ולחץ על הוסף"
-                              className="w-full p-2 border rounded-md rounded-l-none"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  const input = e.target as HTMLInputElement;
-                                  addPaymentMethodKeyword(input.value);
-                                  input.value = '';
-                                }
-                              }}
-                            />
-                              <button
-                                type="button"
-                              className="px-4 py-2 bg-primary-600 text-white rounded-md rounded-r-none"
-                              onClick={() => {
-                                const input = document.getElementById('newPaymentMethodKeyword') as HTMLInputElement;
-                                addPaymentMethodKeyword(input.value);
-                                input.value = '';
-                              }}
-                            >
-                              הוסף
-                            </button>
-                          </div>
-                        </div>
-                        
-                        <div className="flex justify-end space-x-2 space-x-reverse">
-                          <button
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">יתרה התחלתית</label>
+                    <input
+                      type="number"
+                      value={newPaymentMethod.initialBalance}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        setNewPaymentMethod({ 
+                          ...newPaymentMethod, 
+                          initialBalance: value,
+                          // עדכון יתרה נוכחית גם כן אם זו שיטת תשלום חדשה
+                          currentBalance: editingPaymentMethodId ? newPaymentMethod.currentBalance : value 
+                        });
+                      }}
+                      className="w-full p-2 border rounded-md"
+                      placeholder="0"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">תאריך התחלתי</label>
+                    <input
+                      type="date"
+                      value={newPaymentMethod.initialDate ? newPaymentMethod.initialDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
+                      onChange={(e) => {
+                        const value = e.target.value ? new Date(e.target.value) : new Date();
+                        setNewPaymentMethod({ 
+                          ...newPaymentMethod, 
+                          initialDate: value
+                        });
+                      }}
+                      className="w-full p-2 border rounded-md"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  מילות מפתח לזיהוי אוטומטי
+                  <span className="mr-1 text-xs text-gray-500">(לדוגמה: 4 ספרות אחרונות של כרטיס אשראי)</span>
+                </label>
+                
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {(newPaymentMethod.keywords || []).map((keyword, index) => (
+                    <div 
+                      key={index}
+                      className="px-2 py-1 bg-primary-100 text-primary-800 rounded-md flex items-center"
+                    >
+                      <span>{keyword}</span>
+                      <button 
+                        type="button"
+                        className="ml-1 text-primary-600 hover:text-primary-800"
+                        onClick={() => removePaymentMethodKeyword(keyword)}
+                      >
+                        <FiX size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="flex">
+                  <input
+                    type="text"
+                    id="newPaymentMethodKeyword"
+                    placeholder="הוסף מילת מפתח ולחץ על הוסף"
+                    className="w-full p-2 border rounded-md rounded-l-none"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const input = e.target as HTMLInputElement;
+                        addPaymentMethodKeyword(input.value);
+                        input.value = '';
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-primary-600 text-white rounded-md rounded-r-none"
+                    onClick={() => {
+                      const input = document.getElementById('newPaymentMethodKeyword') as HTMLInputElement;
+                      addPaymentMethodKeyword(input.value);
+                      input.value = '';
+                    }}
+                  >
+                    הוסף
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-2 space-x-reverse">
+                <button
                   onClick={resetPaymentMethodForm}
                   className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 flex items-center"
-                          >
+                >
                   <FiX className="ml-1" />
                   ביטול
-                          </button>
-                          
-                          <button
+                </button>
+                
+                <button
                   onClick={savePaymentMethod}
                   className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 flex items-center"
                   disabled={!newPaymentMethod.name}
-                          >
+                >
                   <FiSave className="ml-1" />
                   שמירה
-                          </button>
-                        </div>
+                </button>
+              </div>
             </div>
           )}
           
@@ -459,48 +476,48 @@ const FinanceSettings = () => {
             {paymentMethods.length === 0 ? (
               <div className="text-center py-6 text-gray-500">
                 אין שיטות תשלום להצגה
-                      </div>
-                    ) : (
+              </div>
+            ) : (
               paymentMethods.map((method) => (
                 <div key={method.id} className="card p-4 flex justify-between items-center hover:bg-gray-50">
-                        <div className="flex items-center">
-                          <div 
+                  <div className="flex items-center">
+                    <div 
                       className="w-10 h-10 rounded-full flex items-center justify-center mr-3"
                       style={{ backgroundColor: `${method.color}25`, color: method.color }}
-                          >
-                            {method.icon}
-                          </div>
+                    >
+                      {method.icon}
+                    </div>
                     
-                          <div>
-                            <h4 className="font-medium">{method.name}</h4>
+                    <div>
+                      <h4 className="font-medium">{method.name}</h4>
                       <div className="text-sm text-gray-600">
                         יתרה: {method.currentBalance.toLocaleString()} ₪
                       </div>
-                          </div>
-                        </div>
-                        
+                    </div>
+                  </div>
+                  
                   <div className="flex space-x-2 space-x-reverse">
-                          <button
+                    <button
                       onClick={() => startEditingPaymentMethod(method)}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-full"
                       title="עריכה"
-                          >
+                    >
                       <FiEdit size={18} />
-                          </button>
-                          
-                          <button
-                            onClick={() => deletePaymentMethod(method.id)}
+                    </button>
+                    
+                    <button
+                      onClick={() => deletePaymentMethod(method.id)}
                       className="p-2 text-red-600 hover:bg-red-50 rounded-full"
                       title="מחיקה"
-                          >
+                    >
                       <FiTrash2 size={18} />
-                          </button>
-                        </div>
+                    </button>
                   </div>
-                ))
-              )}
-            </div>
+                </div>
+              ))
+            )}
           </div>
+        </div>
       ) : (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
@@ -523,64 +540,64 @@ const FinanceSettings = () => {
               <h4 className="font-medium">
                 {editingCategoryId ? 'עריכת קטגוריה' : 'הוספת קטגוריה חדשה'}
               </h4>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">שם</label>
-                <input
-                  type="text"
+                  <input
+                    type="text"
                     value={newCategory.name}
                     onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
                     className="w-full p-2 border rounded-md"
                     placeholder="לדוגמה: מזון, תחבורה, בידור"
-                />
-              </div>
-              
-              <div>
+                  />
+                </div>
+                
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">סוג</label>
                   <div className="flex">
-                  <button
-                    type="button"
+                    <button
+                      type="button"
                       className={`flex-1 py-2 border-l ${
                         newCategory.type === 'income'
                           ? 'bg-green-100 text-green-800 border-green-300'
                           : 'bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200'
-                                }`}
+                      }`}
                       onClick={() => setNewCategory({ ...newCategory, type: 'income' })}
-                              >
+                    >
                       הכנסה
-                  </button>
+                    </button>
                     
-                  <button
-                    type="button"
+                    <button
+                      type="button"
                       className={`flex-1 py-2 ${
                         newCategory.type === 'expense'
                           ? 'bg-red-100 text-red-800 border-red-300'
                           : 'bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200'
-                                }`}
+                      }`}
                       onClick={() => setNewCategory({ ...newCategory, type: 'expense' })}
-                              >
+                    >
                       הוצאה
-                  </button>
-              </div>
-            </div>
-            
-            <div>
+                    </button>
+                  </div>
+                </div>
+                
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">אייקון</label>
                   <div className="grid grid-cols-10 gap-2 mb-2 max-h-40 overflow-y-auto p-2 border rounded-md">
                     {popularIcons.map((icon) => (
-                  <button
+                      <button
                         key={icon}
-                    type="button"
+                        type="button"
                         className={`w-8 h-8 flex items-center justify-center rounded-md ${
                           newCategory.icon === icon ? 'bg-primary-100 border-2 border-primary-500' : 'bg-white border border-gray-300'
                         }`}
                         onClick={() => setNewCategory({ ...newCategory, icon })}
-                  >
-                    {icon}
-                  </button>
-                ))}
-              </div>
+                      >
+                        {icon}
+                      </button>
+                    ))}
+                  </div>
                   <input
                     type="text"
                     value={newCategory.icon}
@@ -589,22 +606,22 @@ const FinanceSettings = () => {
                     placeholder="אמוג'י"
                     maxLength={8}
                   />
-            </div>
-            
-            <div>
+                </div>
+                
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">צבע</label>
                   <div className="grid grid-cols-10 gap-2 mb-2 max-h-40 overflow-y-auto p-2 border rounded-md">
                     {popularColors.map((color) => (
-                  <button
+                      <button
                         key={color}
-                    type="button"
+                        type="button"
                         className={`w-8 h-8 rounded-md ${
                           newCategory.color === color ? 'ring-2 ring-primary-500' : ''
-                    }`}
-                    style={{ backgroundColor: color }}
+                        }`}
+                        style={{ backgroundColor: color }}
                         onClick={() => setNewCategory({ ...newCategory, color })}
-                  />
-                ))}
+                      />
+                    ))}
                   </div>
                   <input
                     type="color"
@@ -612,124 +629,124 @@ const FinanceSettings = () => {
                     onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
                     className="w-full p-1 h-10 border rounded-md"
                   />
+                </div>
               </div>
-            </div>
-            
-                        <div className="md:col-span-2">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            מילות מפתח לזיהוי אוטומטי
-                            <span className="mr-1 text-xs text-gray-500">(שמות של בתי עסק או ביטויים שמופיעים בתיאור)</span>
-                          </label>
-                          
-                          <div className="flex flex-wrap gap-2 mb-2">
-                            {(newCategory.keywords || []).map((keyword, index) => (
-                              <div 
-                                key={index} 
-                                className="px-2 py-1 bg-primary-100 text-primary-800 rounded-md flex items-center"
-                              >
-                                <span>{keyword}</span>
-              <button
-                                  type="button"
-                                  className="ml-1 text-primary-600 hover:text-primary-800"
-                                  onClick={() => removeCategoryKeyword(keyword)}
-                                >
-                                  <FiX size={16} />
-              </button>
-            </div>
-                            ))}
-          </div>
-          
-                          <div className="flex">
-                            <input
-                              type="text"
-                              id="newCategoryKeyword"
-                              placeholder="הוסף מילת מפתח ולחץ על הוסף"
-                              className="w-full p-2 border rounded-md rounded-l-none"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  const input = e.target as HTMLInputElement;
-                                  addCategoryKeyword(input.value);
-                                  input.value = '';
-                                }
-                              }}
-                            />
-                              <button
-                                type="button"
-                              className="px-4 py-2 bg-primary-600 text-white rounded-md rounded-r-none"
-                              onClick={() => {
-                                const input = document.getElementById('newCategoryKeyword') as HTMLInputElement;
-                                addCategoryKeyword(input.value);
-                                input.value = '';
-                              }}
-                            >
-                              הוסף
-                              </button>
-                          </div>
-                        </div>
-                        
-                        <div className="flex justify-end space-x-2 space-x-reverse">
-                              <button
+              
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  מילות מפתח לזיהוי אוטומטי
+                  <span className="mr-1 text-xs text-gray-500">(שמות של בתי עסק או ביטויים שמופיעים בתיאור)</span>
+                </label>
+                
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {(newCategory.keywords || []).map((keyword, index) => (
+                    <div 
+                      key={index} 
+                      className="px-2 py-1 bg-primary-100 text-primary-800 rounded-md flex items-center"
+                    >
+                      <span>{keyword}</span>
+                      <button
+                        type="button"
+                        className="ml-1 text-primary-600 hover:text-primary-800"
+                        onClick={() => removeCategoryKeyword(keyword)}
+                      >
+                        <FiX size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="flex">
+                  <input
+                    type="text"
+                    id="newCategoryKeyword"
+                    placeholder="הוסף מילת מפתח ולחץ על הוסף"
+                    className="w-full p-2 border rounded-md rounded-l-none"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const input = e.target as HTMLInputElement;
+                        addCategoryKeyword(input.value);
+                        input.value = '';
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-primary-600 text-white rounded-md rounded-r-none"
+                    onClick={() => {
+                      const input = document.getElementById('newCategoryKeyword') as HTMLInputElement;
+                      addCategoryKeyword(input.value);
+                      input.value = '';
+                    }}
+                  >
+                    הוסף
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-2 space-x-reverse">
+                <button
                   onClick={resetCategoryForm}
                   className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 flex items-center"
-                          >
+                >
                   <FiX className="ml-1" />
                   ביטול
-                              </button>
-                          
-                              <button
+                </button>
+                
+                <button
                   onClick={saveCategory}
                   className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 flex items-center"
                   disabled={!newCategory.name}
-                          >
+                >
                   <FiSave className="ml-1" />
                   שמירה
-                              </button>
-                          </div>
-                        </div>
+                </button>
+              </div>
+            </div>
           )}
-                        
+          
           {/* רשימת קטגוריות */}
-                        <div>
+          <div>
             <h4 className="font-medium mb-2">קטגוריות הכנסה</h4>
             <div className="space-y-2 mb-4">
               {categories.filter(cat => cat.type === 'income').length === 0 ? (
                 <div className="text-center py-4 text-gray-500 bg-gray-50 rounded-md">
                   אין קטגוריות הכנסה להצגה
-                          </div>
-                    ) : (
+                </div>
+              ) : (
                 categories
                   .filter(cat => cat.type === 'income')
                   .map((category) => (
                     <div key={category.id} className="card p-3 flex justify-between items-center hover:bg-gray-50">
-                        <div className="flex items-center">
-                          <div 
+                      <div className="flex items-center">
+                        <div 
                           className="w-8 h-8 rounded-full flex items-center justify-center mr-2"
                           style={{ backgroundColor: `${category.color}25`, color: category.color }}
-                          >
-                            {category.icon}
+                        >
+                          {category.icon}
                         </div>
                         
-                            <h4 className="font-medium">{category.name}</h4>
+                        <h4 className="font-medium">{category.name}</h4>
                       </div>
                       
                       <div className="flex space-x-2 space-x-reverse">
-                          <button
+                        <button
                           onClick={() => startEditingCategory(category)}
                           className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-full"
                           title="עריכה"
-                          >
+                        >
                           <FiEdit size={16} />
-                          </button>
-                          
-                          <button
+                        </button>
+                        
+                        <button
                           onClick={() => deleteCategory(category.id)}
                           className="p-1.5 text-red-600 hover:bg-red-50 rounded-full"
                           title="מחיקה"
                         >
                           <FiTrash2 size={16} />
-                          </button>
-                        </div>
+                        </button>
+                      </div>
                     </div>
                   ))
               )}
@@ -740,42 +757,42 @@ const FinanceSettings = () => {
               {categories.filter(cat => cat.type === 'expense').length === 0 ? (
                 <div className="text-center py-4 text-gray-500 bg-gray-50 rounded-md">
                   אין קטגוריות הוצאה להצגה
-                      </div>
-                    ) : (
+                </div>
+              ) : (
                 categories
                   .filter(cat => cat.type === 'expense')
                   .map((category) => (
                     <div key={category.id} className="card p-3 flex justify-between items-center hover:bg-gray-50">
-                        <div className="flex items-center">
-                          <div 
+                      <div className="flex items-center">
+                        <div 
                           className="w-8 h-8 rounded-full flex items-center justify-center mr-2"
                           style={{ backgroundColor: `${category.color}25`, color: category.color }}
-                          >
-                            {category.icon}
-                          </div>
-                        
-                            <h4 className="font-medium">{category.name}</h4>
+                        >
+                          {category.icon}
                         </div>
                         
+                        <h4 className="font-medium">{category.name}</h4>
+                      </div>
+                      
                       <div className="flex space-x-2 space-x-reverse">
-                          <button
+                        <button
                           onClick={() => startEditingCategory(category)}
                           className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-full"
                           title="עריכה"
-                          >
+                        >
                           <FiEdit size={16} />
-                          </button>
-                          
-                          <button
-                            onClick={() => deleteCategory(category.id)}
+                        </button>
+                        
+                        <button
+                          onClick={() => deleteCategory(category.id)}
                           className="p-1.5 text-red-600 hover:bg-red-50 rounded-full"
                           title="מחיקה"
-                          >
+                        >
                           <FiTrash2 size={16} />
-                          </button>
-                        </div>
-                  </div>
-                ))
+                        </button>
+                      </div>
+                    </div>
+                  ))
               )}
             </div>
           </div>
