@@ -27,7 +27,6 @@ const FinanceSettings = () => {
     color: '#6366f1',
     initialBalance: 0,
     currentBalance: 0,
-    initialDate: new Date(),
     keywords: []
   });
   
@@ -77,7 +76,6 @@ const FinanceSettings = () => {
       color: '#6366f1',
       initialBalance: 0,
       currentBalance: 0,
-      initialDate: new Date(),
       keywords: []
     });
     setEditingPaymentMethodId(null);
@@ -376,22 +374,6 @@ const FinanceSettings = () => {
                       }}
                       className="w-full p-2 border rounded-md"
                       placeholder="0"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">תאריך התחלתי</label>
-                    <input
-                      type="date"
-                      value={newPaymentMethod.initialDate ? newPaymentMethod.initialDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
-                      onChange={(e) => {
-                        const value = e.target.value ? new Date(e.target.value) : new Date();
-                        setNewPaymentMethod({ 
-                          ...newPaymentMethod, 
-                          initialDate: value
-                        });
-                      }}
-                      className="w-full p-2 border rounded-md"
                     />
                   </div>
                 </div>
