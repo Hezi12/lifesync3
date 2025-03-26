@@ -44,6 +44,43 @@ const FinanceBalance = () => {
     const dates = getLast30Days();
     const history: {date: string, balance: number}[] = [];
     
+    // בדיקה אם יש עסקאות
+    const hasTransactions = transactions.length > 0;
+    
+    // חישוב סכום כולל של אמצעי תשלום
+    const totalPaymentMethods = paymentMethods.reduce((sum, method) => sum + method.currentBalance, 0);
+    
+    // חישוב השפעת החובות וההלוואות פתוחים
+    const openDebtsTotal = debtLoans
+      .filter(item => !item.isPaid && item.isDebt)
+      .reduce((sum, item) => sum + item.amount, 0);
+      
+    const openLoansTotal = debtLoans
+      .filter(item => !item.isPaid && !item.isDebt)
+      .reduce((sum, item) => sum + item.amount, 0);
+    
+    // המצב הנוכחי - סכום אמצעי תשלום + הלוואות פתוחות - חובות פתוחים
+    const currentBalance = totalPaymentMethods - openDebtsTotal + openLoansTotal;
+    
+    // אם אין עסקאות, פשוט מציג קו ישר עם המצב הנוכחי
+    if (!hasTransactions) {
+      // מילוי ההיסטוריה עם הערך הנוכחי לכל 30 הימים
+      dates.forEach(date => {
+        history.push({
+          date,
+          balance: currentBalance
+        });
+      });
+      
+      setBalanceHistory(history);
+      
+      // אין שינוי חודשי אם אין עסקאות
+      setMonthlyChange(0);
+      setMonthlyChangePercent(0);
+      return;
+    }
+    
+    // אם יש עסקאות, ממשיך בחישוב המקורי
     // חישוב היתרה ההתחלתית (סכום כל היתרות ההתחלתיות)
     const initialTotal = paymentMethods.reduce((sum, method) => sum + method.initialBalance, 0);
     
