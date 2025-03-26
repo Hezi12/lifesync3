@@ -462,8 +462,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       if (savedPaymentMethods) {
         setPaymentMethods(JSON.parse(savedPaymentMethods));
       } else {
-        setPaymentMethods(defaultPaymentMethods);
-        localStorage.setItem('paymentMethods', JSON.stringify(defaultPaymentMethods));
+        // לא טוען אמצעי תשלום ברירת מחדל - המערך יישאר ריק
+        setPaymentMethods([]);
+        localStorage.setItem('paymentMethods', JSON.stringify([]));
       }
 
       // טעינת עסקאות
@@ -501,8 +502,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       if (savedCategories) {
         setCategories(JSON.parse(savedCategories));
       } else {
-        setCategories(defaultCategories);
-        localStorage.setItem('financialCategories', JSON.stringify(defaultCategories));
+        // לא טוען קטגוריות ברירת מחדל - המערך יישאר ריק
+        setCategories([]);
+        localStorage.setItem('financialCategories', JSON.stringify([]));
       }
     } catch (error) {
       console.error('שגיאה בטעינת נתונים מקומיים:', error);
@@ -919,22 +921,17 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (!user || !db) return;
 
     try {
-      // יצירת שיטות תשלום ברירת מחדל
+      // במקום ליצור נתוני ברירת מחדל, נשאיר את המערכים ריקים
+      console.log('לא נוצרו נתוני ברירת מחדל - המערכת תחכה להזנה מהמשתמש');
+      
+      // יצירת אוספים ריקים עבור המשתמש
       const paymentMethodsRef = collection(db, `users/${user.uid}/paymentMethods`);
-      for (const method of defaultPaymentMethods) {
-        await setDoc(doc(paymentMethodsRef, method.id), method);
-      }
-
-      // יצירת קטגוריות ברירת מחדל
       const categoriesRef = collection(db, `users/${user.uid}/categories`);
-      for (const category of defaultCategories) {
-        await setDoc(doc(categoriesRef, category.id), category);
-      }
-
-      console.log('נתוני ברירת מחדל נוצרו בהצלחה');
+      
+      // ללא יצירת נתוני דמה
     } catch (error) {
-      console.error('שגיאה ביצירת נתוני ברירת מחדל:', error);
-      setError('אירעה שגיאה ביצירת נתוני ברירת מחדל');
+      console.error('שגיאה ביצירת אוספים למשתמש:', error);
+      setError('אירעה שגיאה בהכנת המערכת');
     }
   };
 
