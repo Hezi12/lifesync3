@@ -31,7 +31,7 @@ interface FinanceContextType {
   isOnline: boolean;
   pendingChanges: boolean;
   updatePaymentMethod: (method: PaymentMethod) => Promise<void>;
-  addPaymentMethod: (method: PaymentMethod) => Promise<void>;
+  addPaymentMethod: (method: PaymentMethod) => Promise<PaymentMethod>;
   deletePaymentMethod: (id: string) => Promise<void>;
   addTransaction: (transaction: Transaction) => Promise<void>;
   updateTransaction: (transaction: Transaction) => Promise<void>;
@@ -45,6 +45,7 @@ interface FinanceContextType {
   deleteCategory: (id: string) => Promise<void>;
   getPaymentMethodById: (id: string) => PaymentMethod | undefined;
   getCategoryById: (id: string) => FinancialCategory | undefined;
+  recalculateBalances: () => void;
 }
 
 // ערך ברירת מחדל לקונטקסט
@@ -59,7 +60,7 @@ const defaultContextValue: FinanceContextType = {
   isOnline: true,
   pendingChanges: false,
   updatePaymentMethod: async () => {},
-  addPaymentMethod: async () => {},
+  addPaymentMethod: async () => ({ id: '', name: '', icon: '', color: '', initialBalance: 0, currentBalance: 0, keywords: [] }),
   deletePaymentMethod: async () => {},
   addTransaction: async () => {},
   updateTransaction: async () => {},
@@ -72,7 +73,8 @@ const defaultContextValue: FinanceContextType = {
   updateCategory: async () => {},
   deleteCategory: async () => {},
   getPaymentMethodById: () => undefined,
-  getCategoryById: () => undefined
+  getCategoryById: () => undefined,
+  recalculateBalances: () => {}
 };
 
 // יצירת הקונטקסט
@@ -451,7 +453,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   // חישוב היתרה הכוללת כשיש שינויים בנתונים
   useEffect(() => {
     calculateTotalBalance();
-  }, [paymentMethods, debtLoans]);
+  }, [paymentMethods, debtLoans, transactions]);
 
   // פונקציה לטעינת נתונים מ-localStorage
   const loadLocalData = () => {
@@ -516,23 +518,97 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
   // חישוב היתרה הכוללת
   const calculateTotalBalance = () => {
-    // חישוב היתרה משיטות התשלום
-    let balance = paymentMethods.reduce((sum, method) => sum + method.currentBalance, 0);
-    
-    // עדכון לפי חובות והלוואות פתוחים
-    debtLoans.forEach(item => {
-      if (!item.isPaid) {
-        if (item.isDebt) {
-          // אם זה חוב שאני חייב, מורידים מהיתרה
-          balance -= item.amount;
-        } else {
-          // אם זו הלוואה שאני נתתי, מוסיפים ליתרה
-          balance += item.amount;
+    try {
+      console.group('חישוב יתרה כוללת');
+      
+      // חישוב היתרה משיטות התשלום
+      let balance = 0;
+      console.log('אמצעי תשלום:');
+      paymentMethods.forEach(method => {
+        console.log(`- ${method.name}: ${method.currentBalance}`);
+        balance += method.currentBalance;
+      });
+      
+      console.log('יתרה אחרי אמצעי תשלום:', balance);
+      
+      // עדכון לפי חובות והלוואות פתוחים
+      console.log('התחשבות בחובות והלוואות:');
+      
+      debtLoans.forEach(item => {
+        if (!item.isPaid) {
+          if (item.isDebt) {
+            // אם זה חוב שאני חייב, מורידים מהיתרה
+            console.log(`- חוב: ${item.personName}, ${item.amount} (מופחת מהיתרה)`);
+            balance -= item.amount;
+          } else {
+            // אם זו הלוואה שאני נתתי, מוסיפים ליתרה
+            console.log(`- הלוואה: ${item.personName}, ${item.amount} (מתווסף ליתרה)`);
+            balance += item.amount;
+          }
         }
-      }
-    });
-    
-    setTotalBalance(balance);
+      });
+      
+      console.log('יתרה סופית:', balance);
+      setTotalBalance(balance);
+      
+      console.groupEnd();
+    } catch (error) {
+      console.error('שגיאה בחישוב היתרה הכוללת:', error);
+      console.groupEnd();
+    }
+  };
+
+  // פונקציה חדשה לחישוב מחדש של היתרות
+  const recalculateBalances = () => {
+    try {
+      console.group('חישוב מחדש של היתרות');
+      
+      // יצירת עותק של אמצעי התשלום עם איפוס מצב היתרה הנוכחית ליתרה ההתחלתית
+      const recalculatedMethods = paymentMethods.map(method => {
+        console.log(`איפוס ${method.name}: ${method.currentBalance} -> ${method.initialBalance}`);
+        return {
+          ...method,
+          currentBalance: method.initialBalance
+        };
+      });
+      
+      // חישוב מחדש של השפעת כל העסקאות על היתרות
+      console.log('מחשב מחדש לפי עסקאות:');
+      transactions.forEach((transaction, index) => {
+        const methodIndex = recalculatedMethods.findIndex(m => m.id === transaction.paymentMethodId);
+        if (methodIndex >= 0) {
+          const prevBalance = recalculatedMethods[methodIndex].currentBalance;
+          
+          if (transaction.type === 'income') {
+            recalculatedMethods[methodIndex].currentBalance += transaction.amount;
+            console.log(`עסקה ${index+1}: ${transaction.description}, +${transaction.amount} ל-${recalculatedMethods[methodIndex].name} (${prevBalance} -> ${recalculatedMethods[methodIndex].currentBalance})`);
+          } else {
+            recalculatedMethods[methodIndex].currentBalance -= transaction.amount;
+            console.log(`עסקה ${index+1}: ${transaction.description}, -${transaction.amount} מ-${recalculatedMethods[methodIndex].name} (${prevBalance} -> ${recalculatedMethods[methodIndex].currentBalance})`);
+          }
+        } else {
+          console.warn(`עסקה ${index+1}: לא נמצא אמצעי תשלום עם ID: ${transaction.paymentMethodId}`);
+        }
+      });
+      
+      // סיכום סופי
+      recalculatedMethods.forEach(method => {
+        const originalMethod = paymentMethods.find(m => m.id === method.id);
+        const originalBalance = originalMethod?.currentBalance || 0;
+        console.log(`${method.name}: ${originalBalance} -> ${method.currentBalance}, שינוי: ${method.currentBalance - originalBalance}`);
+      });
+      
+      // עדכון אמצעי התשלום עם היתרות המחושבות מחדש
+      setPaymentMethods(recalculatedMethods);
+      localStorage.setItem('paymentMethods', JSON.stringify(recalculatedMethods));
+      
+      // חישוב היתרה הכוללת ייעשה באופן אוטומטי בזכות ה-useEffect
+      
+      console.groupEnd();
+    } catch (error) {
+      console.error('שגיאה בחישוב מחדש של היתרות:', error);
+      console.groupEnd();
+    }
   };
 
   // פונקציות לעדכון נתונים עם טיפול במצב לא מקוון
@@ -566,16 +642,35 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         method.id = uuidv4();
       }
       
-      const newMethods = [...paymentMethods, method];
+      // ודא שיש ערכים תקינים בשדות חובה
+      const validMethod = {
+        ...method,
+        currentBalance: method.currentBalance || method.initialBalance || 0,
+        initialBalance: method.initialBalance || 0,
+        keywords: method.keywords || []
+      };
+      
+      const newMethods = [...paymentMethods, validMethod];
       setPaymentMethods(newMethods);
       localStorage.setItem('paymentMethods', JSON.stringify(newMethods));
       
+      console.log('נוסף אמצעי תשלום חדש:', validMethod);
+      
       if (user && isOnline) {
-        const methodsRef = collection(db, `users/${user.uid}/paymentMethods`);
-        await setDoc(doc(methodsRef, method.id), method);
+        try {
+          const methodsRef = collection(db, `users/${user.uid}/paymentMethods`);
+          await setDoc(doc(methodsRef, validMethod.id), validMethod);
+          console.log('אמצעי תשלום נשמר בהצלחה בשרת');
+        } catch (firebaseError) {
+          console.error('שגיאה בשמירת אמצעי תשלום בשרת:', firebaseError);
+          // גם במקרה של כשל בשרת, המידע נשמר מקומית
+          setPendingChanges(true);
+        }
       } else if (user) {
         setPendingChanges(true);
       }
+      
+      return validMethod;
     } catch (error) {
       console.error('שגיאה בהוספת שיטת תשלום:', error);
       throw error;
@@ -608,6 +703,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         transaction.id = uuidv4();
       }
       
+      console.group(`הוספת עסקה: ${transaction.description} (${transaction.id})`);
+      console.log('סכום:', transaction.amount, 'סוג:', transaction.type, 'אמצעי תשלום:', transaction.paymentMethodId);
+      
       const newTransactions = [...transactions, transaction];
       setTransactions(newTransactions);
       localStorage.setItem('transactions', JSON.stringify(newTransactions));
@@ -615,6 +713,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       // עדכון היתרה של שיטת התשלום
       const method = paymentMethods.find(m => m.id === transaction.paymentMethodId);
       if (method) {
+        console.log('אמצעי תשלום לפני עדכון:', method.name, 'יתרה:', method.currentBalance);
+        
         const updatedMethod = { ...method };
         if (transaction.type === 'income') {
           updatedMethod.currentBalance += transaction.amount;
@@ -622,7 +722,11 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
           updatedMethod.currentBalance -= transaction.amount;
         }
         
+        console.log('אמצעי תשלום אחרי עדכון:', updatedMethod.name, 'יתרה חדשה:', updatedMethod.currentBalance);
+        
         await updatePaymentMethod(updatedMethod);
+      } else {
+        console.warn('לא נמצא אמצעי תשלום עם ID:', transaction.paymentMethodId);
       }
       
       if (user && isOnline) {
@@ -631,8 +735,12 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       } else if (user) {
         setPendingChanges(true);
       }
+      
+      console.log('עסקה נוספה בהצלחה');
+      console.groupEnd();
     } catch (error) {
       console.error('שגיאה בהוספת עסקה:', error);
+      console.groupEnd();
       throw error;
     }
   };
@@ -722,9 +830,14 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       const transaction = transactions.find(t => t.id === id);
       
       if (transaction) {
+        console.group(`מחיקת עסקה: ${transaction.description} (${transaction.id})`);
+        console.log('סכום:', transaction.amount, 'סוג:', transaction.type, 'אמצעי תשלום:', transaction.paymentMethodId);
+        
         // עדכון היתרה של שיטת התשלום
         const method = paymentMethods.find(m => m.id === transaction.paymentMethodId);
         if (method) {
+          console.log('אמצעי תשלום לפני עדכון:', method.name, 'יתרה:', method.currentBalance);
+          
           const updatedMethod = { ...method };
           if (transaction.type === 'income') {
             updatedMethod.currentBalance -= transaction.amount;
@@ -732,8 +845,14 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
             updatedMethod.currentBalance += transaction.amount;
           }
           
+          console.log('אמצעי תשלום אחרי עדכון:', updatedMethod.name, 'יתרה חדשה:', updatedMethod.currentBalance);
+          
           await updatePaymentMethod(updatedMethod);
+        } else {
+          console.warn('לא נמצא אמצעי תשלום עם ID:', transaction.paymentMethodId);
         }
+      } else {
+        console.warn('לא נמצאה עסקה למחיקה עם ID:', id);
       }
       
       const newTransactions = transactions.filter(t => t.id !== id);
@@ -746,8 +865,12 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       } else if (user) {
         setPendingChanges(true);
       }
+      
+      console.log('עסקה נמחקה בהצלחה');
+      console.groupEnd();
     } catch (error) {
       console.error('שגיאה במחיקת עסקה:', error);
+      console.groupEnd();
       throw error;
     }
   };
@@ -960,7 +1083,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     updateCategory,
     deleteCategory,
     getPaymentMethodById,
-    getCategoryById
+    getCategoryById,
+    recalculateBalances
   };
 
   // עדכון סנכרון עם Firebase כשנטענים נתונים מקומיים במצב מחובר

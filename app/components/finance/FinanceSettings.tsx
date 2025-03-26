@@ -14,7 +14,8 @@ const FinanceSettings = () => {
     deletePaymentMethod,
     addCategory,
     updateCategory,
-    deleteCategory
+    deleteCategory,
+    recalculateBalances
   } = useFinanceContext();
   
   const [activeTab, setActiveTab] = useState<'paymentMethods' | 'categories'>('paymentMethods');
@@ -41,6 +42,9 @@ const FinanceSettings = () => {
     keywords: []
   });
   
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  
   // עריכת שיטת תשלום
   const startEditingPaymentMethod = (method: PaymentMethod) => {
     setNewPaymentMethod({ ...method });
@@ -51,19 +55,34 @@ const FinanceSettings = () => {
   // סיום עריכת שיטת תשלום
   const savePaymentMethod = async () => {
     try {
+      setErrorMessage(null);
+      
+      if (!newPaymentMethod.name) {
+        setErrorMessage('חובה להזין שם לאמצעי התשלום');
+        return;
+      }
+      
       if (editingPaymentMethodId) {
         // עדכון שיטת תשלום קיימת
         await updatePaymentMethod(newPaymentMethod);
+        setSuccessMessage(`אמצעי התשלום "${newPaymentMethod.name}" עודכן בהצלחה`);
       } else {
         // הוספת שיטת תשלום חדשה
-        await addPaymentMethod(newPaymentMethod);
+        const saved = await addPaymentMethod(newPaymentMethod);
+        console.log('אמצעי תשלום נשמר:', saved);
+        setSuccessMessage(`אמצעי התשלום "${saved.name}" נוסף בהצלחה`);
       }
       
       // איפוס טופס העריכה
       resetPaymentMethodForm();
+      
+      // הסתרת הודעת ההצלחה אחרי 3 שניות
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 3000);
     } catch (error) {
       console.error('שגיאה בשמירת שיטת תשלום:', error);
-      alert('אירעה שגיאה בשמירת שיטת התשלום');
+      setErrorMessage('אירעה שגיאה בשמירת שיטת התשלום');
     }
   };
       
@@ -252,8 +271,21 @@ const FinanceSettings = () => {
   };
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <h2 className="text-xl font-semibold">הגדרות פיננסיות</h2>
+      
+      {/* הודעות הצלחה ושגיאה */}
+      {successMessage && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+          {successMessage}
+        </div>
+      )}
+      
+      {errorMessage && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          {errorMessage}
+        </div>
+      )}
       
       {/* טאבים */}
       <div className="flex border-b">
@@ -780,6 +812,32 @@ const FinanceSettings = () => {
           </div>
         </div>
       )}
+      
+      {/* כפתור לשחזור יתרות */}
+      <div className="card p-4">
+        <h3 className="text-lg font-semibold mb-3">תחזוקת מערכת</h3>
+        <div className="space-y-4">
+          <div className="bg-amber-50 p-4 rounded-md border border-amber-200">
+            <h4 className="font-medium text-amber-800 mb-2">שחזור יתרות</h4>
+            <p className="text-sm text-amber-700 mb-3">
+              אם הופיעו בעיות בחישוב היתרות לאחר ייבוא עסקאות או מחיקתן, לחץ על הכפתור כדי לחשב מחדש את היתרות.
+              פעולה זו תאפס את היתרות הנוכחיות לפי היתרות ההתחלתיות, ואז תחשב מחדש את כל העסקאות.
+            </p>
+            <button
+              className="btn btn-amber"
+              onClick={() => {
+                if (window.confirm('האם אתה בטוח שברצונך לחשב מחדש את כל היתרות? פעולה זו תאפס ותחשב מחדש את כל היתרות לפי העסקאות שבמערכת.')) {
+                  // קריאה לפונקציה החדשה במקום רענון הדף
+                  recalculateBalances();
+                  alert('היתרות חושבו מחדש בהצלחה!');
+                }
+              }}
+            >
+              חשב מחדש יתרות
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

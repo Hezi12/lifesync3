@@ -151,8 +151,20 @@ const FinanceBalance = () => {
       const change = lastDay - firstDay;
       
       setMonthlyChange(change);
-      // חישוב אחוז השינוי ביחס למצב הנוכחי
-      const percentChange = lastDay !== 0 ? Math.round((change / lastDay) * 100) : 0;
+      
+      // חישוב אחוז השינוי ביחס למצב ההתחלתי (הערך הראשון)
+      // ולא ביחס למצב הנוכחי כפי שהיה קודם
+      const percentChange = firstDay !== 0 
+        ? Math.round((change / Math.abs(firstDay)) * 100) 
+        : (change !== 0 ? 100 : 0); // אם אין מצב התחלתי והיה שינוי, זה 100%. אחרת 0%
+      
+      console.log('חישוב שינוי באחוזים:', {
+        מצבהתחלתי: firstDay,
+        מצבנוכחי: lastDay,
+        שינויבשקלים: change,
+        שינויבאחוזים: percentChange
+      });
+      
       setMonthlyChangePercent(percentChange);
     } else {
       // אם אין מספיק נתונים בהיסטוריה
@@ -197,8 +209,13 @@ const FinanceBalance = () => {
             <span className={`ml-1 ${monthlyChange >= 0 ? "text-green-600" : "text-red-600"} flex items-center`}>
               {monthlyChange >= 0 ? <FiArrowUp className="mr-1" /> : <FiArrowDown className="mr-1" />}
               {monthlyChange.toLocaleString()} ₪ 
-              <span className="ml-1 text-gray-500">({monthlyChangePercent}%)</span>
+              <span className="ml-1 text-gray-500" title="% שינוי ביחס למצב לפני 30 יום">({monthlyChangePercent}%)</span>
             </span>
+            {monthlyChangePercent !== 0 && (
+              <div className="ml-1 text-xs text-gray-500" title="אחוז השינוי מחושב ביחס למצב לפני 30 יום">
+                <FiInfo />
+              </div>
+            )}
           </div>
         </div>
         

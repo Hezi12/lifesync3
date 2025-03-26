@@ -16,7 +16,8 @@ const FinanceTransactions = () => {
     updateTransaction, 
     deleteTransaction,
     getPaymentMethodById,
-    getCategoryById
+    getCategoryById,
+    recalculateBalances
   } = useFinanceContext();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -162,6 +163,18 @@ const FinanceTransactions = () => {
   // פורמט תאריך
   const formatDate = (date: Date): string => {
     return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+  };
+  
+  // מחיקת עסקה
+  const handleDeleteTransaction = async (id: string) => {
+    try {
+      await deleteTransaction(id);
+      // חישוב מחדש של היתרות אחרי המחיקה
+      recalculateBalances();
+    } catch (error) {
+      console.error('שגיאה במחיקת העסקה:', error);
+      alert('אירעה שגיאה במחיקת העסקה');
+    }
   };
   
   return (
@@ -358,7 +371,7 @@ const FinanceTransactions = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation(); // מניעת הפעלת האירוע של הדיב הראשי
-                        deleteTransaction(transaction.id);
+                        handleDeleteTransaction(transaction.id);
                       }}
                       className="mt-2 p-1.5 rounded-full bg-gray-100 text-red-600 hover:bg-gray-200"
                       title="מחק"

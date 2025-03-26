@@ -31,7 +31,8 @@ const CreditCardImport = () => {
   const { 
     paymentMethods, 
     categories, 
-    addTransaction 
+    addTransaction,
+    recalculateBalances
   } = useFinanceContext();
   
   const [isDragging, setIsDragging] = useState(false);
@@ -75,11 +76,33 @@ const CreditCardImport = () => {
   const mapChargesToTransactions = (charges: CreditCardCharge[]): MappedCharge[] => {
     return charges.map(charge => {
       // זיהוי אמצעי תשלום לפי מספר כרטיס
-      const paymentMethod = paymentMethods.find(method => 
-        method.keywords?.some(keyword => 
-          charge.cardNumber.includes(keyword)
-        )
-      );
+      let paymentMethod = null;
+      
+      console.log(`בודק זיהוי אמצעי תשלום עבור מספר כרטיס: "${charge.cardNumber}"`);
+      
+      // חיפוש מדויק יותר - בדיקה אם מספר הכרטיס מכיל בדיוק את מילת המפתח
+      for (const method of paymentMethods) {
+        if (method.keywords && method.keywords.length > 0) {
+          for (const keyword of method.keywords) {
+            console.log(`בודק האם "${charge.cardNumber}" מכיל את מילת המפתח "${keyword}"`);
+            // השוואה רגישת רווחים
+            if (charge.cardNumber.trim() === keyword.trim()) {
+              console.log(`נמצאה התאמה מדויקת: "${keyword}" = "${charge.cardNumber}"`);
+              paymentMethod = method;
+              break;
+            } else if (charge.cardNumber.includes(keyword)) {
+              console.log(`נמצאה התאמה חלקית: מספר הכרטיס "${charge.cardNumber}" מכיל את מילת המפתח "${keyword}"`);
+              paymentMethod = method;
+              break;
+            }
+          }
+          if (paymentMethod) break;
+        }
+      }
+      
+      if (!paymentMethod) {
+        console.log(`לא נמצא אמצעי תשלום מתאים למספר הכרטיס "${charge.cardNumber}"`);
+      }
       
       // הפוך את שם העסק לאותיות קטנות לחיפוש מדויק יותר
       const businessNameLower = charge.businessName.toLowerCase();
@@ -361,12 +384,35 @@ const CreditCardImport = () => {
   const saveAllTransactions = async () => {
     try {
       setIsProcessing(true);
+      setError(null);
+      
+      // מונה להתקדמות
+      let successCount = 0;
+      let errorCount = 0;
+      
+      console.log(`מתחיל ייבוא של ${mappedCharges.length} עסקאות...`);
       
       for (const item of mappedCharges) {
-        await addTransaction(item.transaction);
+        try {
+          await addTransaction(item.transaction);
+          successCount++;
+        } catch (error) {
+          console.error(`שגיאה בשמירת עסקה "${item.charge.businessName}":`, error);
+          errorCount++;
+        }
       }
       
-      setSuccess(`${mappedCharges.length} עסקאות נוספו בהצלחה!`);
+      // חישוב מחדש של היתרות אחרי הוספת כל העסקאות
+      console.log(`השלמת ייבוא: הצליחו ${successCount}, נכשלו ${errorCount}. מחשב מחדש יתרות...`);
+      recalculateBalances();
+      
+      // הודעת סיכום
+      if (errorCount === 0) {
+        setSuccess(`${successCount} עסקאות נוספו בהצלחה!`);
+      } else {
+        setSuccess(`${successCount} עסקאות נוספו בהצלחה, ${errorCount} עסקאות נכשלו.`);
+      }
+      
       setCharges([]);
       setMappedCharges([]);
       setFile(null);
