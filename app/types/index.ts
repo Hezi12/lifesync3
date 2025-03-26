@@ -97,6 +97,7 @@ export interface PaymentMethod {
   currentBalance: number;
   icon: string;
   color: string;
+  keywords?: string[]; // מילות מפתח לזיהוי אוטומטי של אמצעי תשלום
 }
 
 // קטגוריה פיננסית
@@ -107,6 +108,7 @@ export interface FinancialCategory {
   color: string;
   parentId?: string; // לתתי-קטגוריות
   type: 'income' | 'expense';
+  keywords?: string[]; // מילות מפתח לזיהוי אוטומטי של קטגוריה
 }
 
 // עסקה (הכנסה או הוצאה)

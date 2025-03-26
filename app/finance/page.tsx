@@ -1,15 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { FiDollarSign, FiCreditCard, FiFileText, FiSettings } from 'react-icons/fi';
+import { FiDollarSign, FiCreditCard, FiFileText, FiSettings, FiUpload } from 'react-icons/fi';
 import FinanceBalance from '../components/finance/FinanceBalance';
 import FinanceTransactions from '../components/finance/FinanceTransactions';
 import FinanceDebts from '../components/finance/FinanceDebts';
 import FinanceSettings from '../components/finance/FinanceSettings';
+import CreditCardImport from '../components/finance/CreditCardImport';
 import { useFinanceContext } from '../context/FinanceContext';
 import AuthGuard from '../components/AuthGuard';
 
-type FinanceView = 'balance' | 'transactions' | 'debts' | 'settings';
+type FinanceView = 'balance' | 'transactions' | 'debts' | 'settings' | 'import';
 
 export default function FinancePage() {
   const [selectedView, setSelectedView] = useState<FinanceView>('balance');
@@ -53,6 +54,8 @@ export default function FinancePage() {
         return <FinanceDebts />;
       case 'settings':
         return <FinanceSettings />;
+      case 'import':
+        return <CreditCardImport />;
       default:
         return <FinanceBalance />;
     }
@@ -81,8 +84,8 @@ export default function FinancePage() {
           </div>
         </div>
         
-        <div className="mb-6">
-          <div className="flex space-x-4 rtl:space-x-reverse">
+        <div className="mb-6 overflow-x-auto">
+          <div className="flex space-x-4 rtl:space-x-reverse min-w-max">
             <button
               onClick={() => setSelectedView('balance')}
               className={`px-4 py-2 rounded-md flex items-center ${
@@ -115,6 +118,17 @@ export default function FinancePage() {
             >
               <FiCreditCard className="ml-2" />
               <span>חובות והלוואות</span>
+            </button>
+            <button
+              onClick={() => setSelectedView('import')}
+              className={`px-4 py-2 rounded-md flex items-center ${
+                selectedView === 'import' 
+                  ? 'bg-primary-500 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              <FiUpload className="ml-2" />
+              <span>ייבוא חיובי אשראי</span>
             </button>
             <button
               onClick={() => setSelectedView('settings')}

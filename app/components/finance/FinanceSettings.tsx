@@ -26,7 +26,8 @@ const FinanceSettings = () => {
     icon: '💲',
     color: '#6366f1',
     initialBalance: 0,
-    currentBalance: 0
+    currentBalance: 0,
+    keywords: []
   });
   
   const [isEditingCategory, setIsEditingCategory] = useState(false);
@@ -36,7 +37,8 @@ const FinanceSettings = () => {
     name: '',
     icon: '📁',
     color: '#6366f1',
-    type: 'expense'
+    type: 'expense',
+    keywords: []
   });
   
   // עריכת שיטת תשלום
@@ -73,7 +75,8 @@ const FinanceSettings = () => {
       icon: '💲',
       color: '#6366f1',
       initialBalance: 0,
-      currentBalance: 0
+      currentBalance: 0,
+      keywords: []
     });
     setEditingPaymentMethodId(null);
     setIsEditingPaymentMethod(false);
@@ -112,7 +115,8 @@ const FinanceSettings = () => {
       name: '',
       icon: '📁',
       color: '#6366f1',
-      type: 'expense'
+      type: 'expense',
+      keywords: []
     });
     setEditingCategoryId(null);
     setIsEditingCategory(false);
@@ -131,6 +135,50 @@ const FinanceSettings = () => {
     '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1',
     '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#64748b'
   ];
+  
+  // הוספת מילת מפתח לאמצעי תשלום
+  const addPaymentMethodKeyword = (keyword: string) => {
+    if (!keyword.trim()) return;
+    
+    const keywords = newPaymentMethod.keywords || [];
+    if (!keywords.includes(keyword.trim())) {
+      setNewPaymentMethod({
+        ...newPaymentMethod,
+        keywords: [...keywords, keyword.trim()]
+      });
+    }
+  };
+  
+  // הסרת מילת מפתח מאמצעי תשלום
+  const removePaymentMethodKeyword = (keywordToRemove: string) => {
+    const keywords = newPaymentMethod.keywords || [];
+    setNewPaymentMethod({
+      ...newPaymentMethod,
+      keywords: keywords.filter(keyword => keyword !== keywordToRemove)
+    });
+  };
+  
+  // הוספת מילת מפתח לקטגוריה
+  const addCategoryKeyword = (keyword: string) => {
+    if (!keyword.trim()) return;
+    
+    const keywords = newCategory.keywords || [];
+    if (!keywords.includes(keyword.trim())) {
+      setNewCategory({
+        ...newCategory,
+        keywords: [...keywords, keyword.trim()]
+      });
+    }
+  };
+  
+  // הסרת מילת מפתח מקטגוריה
+  const removeCategoryKeyword = (keywordToRemove: string) => {
+    const keywords = newCategory.keywords || [];
+    setNewCategory({
+      ...newCategory,
+      keywords: keywords.filter(keyword => keyword !== keywordToRemove)
+    });
+  };
   
   return (
     <div className="space-y-6">
@@ -255,6 +303,59 @@ const FinanceSettings = () => {
                     className="w-full p-2 border rounded-md"
                     placeholder="0"
                   />
+                          </div>
+                        </div>
+                        
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            מילות מפתח לזיהוי אוטומטי
+                            <span className="mr-1 text-xs text-gray-500">(לדוגמה: 4 ספרות אחרונות של כרטיס אשראי)</span>
+                          </label>
+                          
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {(newPaymentMethod.keywords || []).map((keyword, index) => (
+                              <div 
+                                key={index} 
+                                className="px-2 py-1 bg-primary-100 text-primary-800 rounded-md flex items-center"
+                              >
+                                <span>{keyword}</span>
+                                <button 
+                                  type="button"
+                                  className="ml-1 text-primary-600 hover:text-primary-800"
+                                  onClick={() => removePaymentMethodKeyword(keyword)}
+                                >
+                                  <FiX size={16} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <div className="flex">
+                            <input
+                              type="text"
+                              id="newPaymentMethodKeyword"
+                              placeholder="הוסף מילת מפתח ולחץ על הוסף"
+                              className="w-full p-2 border rounded-md rounded-l-none"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  const input = e.target as HTMLInputElement;
+                                  addPaymentMethodKeyword(input.value);
+                                  input.value = '';
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="px-4 py-2 bg-primary-600 text-white rounded-md rounded-r-none"
+                              onClick={() => {
+                                const input = document.getElementById('newPaymentMethodKeyword') as HTMLInputElement;
+                                addPaymentMethodKeyword(input.value);
+                                input.value = '';
+                              }}
+                            >
+                              הוסף
+                            </button>
                           </div>
                         </div>
                         
@@ -437,6 +538,59 @@ const FinanceSettings = () => {
                     onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
                     className="w-full p-1 h-10 border rounded-md"
                   />
+                          </div>
+                        </div>
+                        
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            מילות מפתח לזיהוי אוטומטי
+                            <span className="mr-1 text-xs text-gray-500">(שמות של בתי עסק או ביטויים שמופיעים בתיאור)</span>
+                          </label>
+                          
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {(newCategory.keywords || []).map((keyword, index) => (
+                              <div 
+                                key={index} 
+                                className="px-2 py-1 bg-primary-100 text-primary-800 rounded-md flex items-center"
+                              >
+                                <span>{keyword}</span>
+                                <button 
+                                  type="button"
+                                  className="ml-1 text-primary-600 hover:text-primary-800"
+                                  onClick={() => removeCategoryKeyword(keyword)}
+                                >
+                                  <FiX size={16} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <div className="flex">
+                            <input
+                              type="text"
+                              id="newCategoryKeyword"
+                              placeholder="הוסף מילת מפתח ולחץ על הוסף"
+                              className="w-full p-2 border rounded-md rounded-l-none"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  const input = e.target as HTMLInputElement;
+                                  addCategoryKeyword(input.value);
+                                  input.value = '';
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="px-4 py-2 bg-primary-600 text-white rounded-md rounded-r-none"
+                              onClick={() => {
+                                const input = document.getElementById('newCategoryKeyword') as HTMLInputElement;
+                                addCategoryKeyword(input.value);
+                                input.value = '';
+                              }}
+                            >
+                              הוסף
+                            </button>
                           </div>
                         </div>
                         
