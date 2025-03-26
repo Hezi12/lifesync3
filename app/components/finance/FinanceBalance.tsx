@@ -68,6 +68,17 @@ const FinanceBalance = () => {
       }
     });
     
+    // חישוב השפעת החובות וההלוואות
+    let debtLoansImpact = 0;
+    
+    // הוספת השפעת ההלוואות (מוסיפות להון) וחובות (מקטינות את ההון)
+    debtLoans.forEach(debtLoan => {
+      if (!debtLoan.isPaid) { // רק חובות/הלוואות פתוחים
+        // חובות (אני חייב) מקטינות את ההון, הלוואות (חייבים לי) מגדילות את ההון
+        debtLoansImpact += debtLoan.isDebt ? -debtLoan.amount : debtLoan.amount;
+      }
+    });
+    
     // בניית היסטוריית המאזן
     dates.forEach(date => {
       // בדיקה אם יש עסקאות ביום זה
@@ -79,9 +90,12 @@ const FinanceBalance = () => {
         }
       }
       
+      // הוספת השפעת החובות וההלוואות לכל נקודת זמן בהיסטוריה
+      const totalBalanceWithDebtLoans = runningBalance + debtLoansImpact;
+      
       history.push({
         date,
-        balance: runningBalance
+        balance: totalBalanceWithDebtLoans
       });
     });
     
