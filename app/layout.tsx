@@ -6,6 +6,7 @@ import { AppProvider } from './context/AppContext';
 import { CalendarProvider } from './context/CalendarContext';
 import { DocumentsProvider } from './context/DocumentsContext';
 import { FinanceProvider } from './context/FinanceContext';
+import { AuthProvider } from './context/AuthContext';
 
 export default function RootLayout({
   children,
@@ -22,20 +23,22 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
       </head>
       <body className="font-sfhebrew">
-        <AppProvider>
-          <CalendarProvider>
-            <DocumentsProvider>
-              <FinanceProvider>
-                <div className="flex">
-                  <Sidebar />
-                  <main className="flex-grow min-h-screen mr-16 p-6">
-                    {children}
-                  </main>
-                </div>
-              </FinanceProvider>
-            </DocumentsProvider>
-          </CalendarProvider>
-        </AppProvider>
+        <AuthProvider>
+          <AppProvider>
+            <CalendarProvider>
+              <DocumentsProvider>
+                <FinanceProvider>
+                  <div className="flex">
+                    <Sidebar />
+                    <main className="flex-grow min-h-screen mr-16 p-6">
+                      {children}
+                    </main>
+                  </div>
+                </FinanceProvider>
+              </DocumentsProvider>
+            </CalendarProvider>
+          </AppProvider>
+        </AuthProvider>
       </body>
     </html>
   );

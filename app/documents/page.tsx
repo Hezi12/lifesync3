@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useDocumentsContext } from '../context/DocumentsContext';
 import DocumentList from './components/DocumentList';
 import DocumentEditor from './components/DocumentEditor';
+import AuthGuard from '../components/AuthGuard';
 
 export default function DocumentsPage() {
   const {
@@ -59,29 +60,31 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div className="h-full flex gap-6">
-      <DocumentList 
-        documents={documents}
-        selectedDocId={selectedDocId}
-        onSelectDocument={handleSelectDocument}
-        onDeleteDocument={deleteDocument}
-        onCreateDocument={handleCreateDocument}
-      />
-      
-      <div className="flex-grow">
-        <DocumentEditor 
-          selectedDocument={selectedDocument}
-          isCreating={isCreating}
-          isEditing={isEditing}
-          title={title}
-          content={content}
-          onTitleChange={setTitle}
-          onContentChange={setContent}
-          onSave={handleSaveDocument}
-          onEdit={() => setIsEditing(true)}
-          onCreateNew={handleCreateDocument}
+    <AuthGuard>
+      <div className="h-full flex gap-6">
+        <DocumentList 
+          documents={documents}
+          selectedDocId={selectedDocId}
+          onSelectDocument={handleSelectDocument}
+          onDeleteDocument={deleteDocument}
+          onCreateDocument={handleCreateDocument}
         />
+        
+        <div className="flex-grow">
+          <DocumentEditor 
+            selectedDocument={selectedDocument}
+            isCreating={isCreating}
+            isEditing={isEditing}
+            title={title}
+            content={content}
+            onTitleChange={setTitle}
+            onContentChange={setContent}
+            onSave={handleSaveDocument}
+            onEdit={() => setIsEditing(true)}
+            onCreateNew={handleCreateDocument}
+          />
+        </div>
       </div>
-    </div>
+    </AuthGuard>
   );
 } 

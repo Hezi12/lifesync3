@@ -8,6 +8,7 @@ import StatsView from '../components/calendar/StatsView';
 import CalendarSettings from '../components/calendar/CalendarSettings';
 import CalendarNavigation from './components/CalendarNavigation';
 import { useCalendarContext } from '../context/CalendarContext';
+import AuthGuard from '../components/AuthGuard';
 
 // טיפוסים
 type CalendarView = 'daily' | 'weekly' | 'monthly' | 'stats' | 'settings' | 'timeline';
@@ -96,16 +97,18 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="container p-4">
-      <h1 className="text-2xl font-bold mb-6">לוח שנה</h1>
-      
-      <CalendarNavigation 
-        selectedView={selectedView}
-        selectedDate={selectedDate}
-        onViewChange={setSelectedView}
-      />
-      
-      {renderContent()}
-    </div>
+    <AuthGuard>
+      <div className="container p-4">
+        <h1 className="text-2xl font-bold mb-6">לוח שנה</h1>
+        
+        <CalendarNavigation 
+          selectedView={selectedView}
+          selectedDate={selectedDate}
+          onViewChange={setSelectedView}
+        />
+        
+        {renderContent()}
+      </div>
+    </AuthGuard>
   );
 } 

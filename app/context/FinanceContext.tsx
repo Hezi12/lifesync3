@@ -17,6 +17,7 @@ import {
 import { db, auth } from '../firebase/config';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { v4 as uuidv4 } from 'uuid';
+import { useAuth } from './AuthContext';
 
 // טיפוס הקונטקסט של הפיננסים
 interface FinanceContextType {
@@ -156,7 +157,7 @@ const defaultPaymentMethods: PaymentMethod[] = [
 
 // ספק הקונטקסט
 export const FinanceProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useAuth();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [debtLoans, setDebtLoans] = useState<DebtLoan[]>([]);
@@ -197,21 +198,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [user, pendingChanges]);
 
-  // האזנה לשינויים במשתמש המחובר
-  useEffect(() => {
-    setIsLoading(true);
-    setError(null);
-    
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      if (!currentUser) {
-        loadLocalData();
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
   // האזנה לשינויים בזמן אמת מ-Firebase
   useEffect(() => {
     if (!user || !db) return;
@@ -219,89 +205,151 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     setError(null);
 
-    try {
-      // בדיקה אם למשתמש יש כבר נתונים או שצריך ליצור ברירות מחדל
-      const checkUserData = async () => {
-        const paymentMethodsRef = collection(db, `users/${user.uid}/paymentMethods`);
-        const paymentSnapshot = await getDocs(paymentMethodsRef);
-        
-        if (paymentSnapshot.empty) {
-          console.log('יוצר נתוני ברירת מחדל למשתמש חדש');
-          await createDefaultData();
-        }
-      };
+    // פונקציה לניסיונות חוזרים לחיבור לפיירבייס
+    const connectToFirebase = async (retries = 3) => {
+      let attempt = 0;
       
-      checkUserData();
+      while (attempt < retries) {
+        try {
+          // בדיקת חיבור לפיירבייס
+          const testRef = collection(db, `users/${user.uid}/connection-test`);
+          await getDocs(testRef);
+          console.log('חיבור לפיירבייס נוצר בהצלחה');
+          return true;
+        } catch (error) {
+          console.error(`ניסיון חיבור לפיירבייס נכשל (${attempt + 1}/${retries}):`, error);
+          attempt++;
+          
+          if (attempt >= retries) {
+            setError('לא ניתן להתחבר לשרת. נסה שוב מאוחר יותר.');
+            loadLocalData(); // טעינת נתונים מקומיים במקרה של כשל
+            return false;
+          }
+          
+          // המתנה לפני ניסיון נוסף
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
+      return false;
+    };
 
-      // האזנה לשינויים בשיטות תשלום
-      const paymentMethodsRef = collection(db, `users/${user.uid}/paymentMethods`);
-      const unsubPaymentMethods = onSnapshot(paymentMethodsRef, (snapshot) => {
-        const methodsData: PaymentMethod[] = [];
-        snapshot.forEach((doc) => {
-          methodsData.push({ id: doc.id, ...doc.data() } as PaymentMethod);
-        });
-        setPaymentMethods(methodsData);
-        localStorage.setItem('paymentMethods', JSON.stringify(methodsData));
-      });
+    const setupFirebaseConnection = async () => {
+      // ניסיון להתחבר לפיירבייס
+      const connected = await connectToFirebase();
+      if (!connected) return;
 
-      // האזנה לשינויים בקטגוריות
-      const categoriesRef = collection(db, `users/${user.uid}/categories`);
-      const unsubCategories = onSnapshot(categoriesRef, (snapshot) => {
-        const categoriesData: FinancialCategory[] = [];
-        snapshot.forEach((doc) => {
-          categoriesData.push({ id: doc.id, ...doc.data() } as FinancialCategory);
-        });
-        setCategories(categoriesData);
-        localStorage.setItem('financialCategories', JSON.stringify(categoriesData));
-      });
+      try {
+        // בדיקה אם למשתמש יש כבר נתונים או שצריך ליצור ברירות מחדל
+        const checkUserData = async () => {
+          const paymentMethodsRef = collection(db, `users/${user.uid}/paymentMethods`);
+          const paymentSnapshot = await getDocs(paymentMethodsRef);
+          
+          if (paymentSnapshot.empty) {
+            console.log('יוצר נתוני ברירת מחדל למשתמש חדש');
+            await createDefaultData();
+          }
+        };
+        
+        await checkUserData();
 
-      // האזנה לשינויים בעסקאות
-      const transactionsRef = collection(db, `users/${user.uid}/transactions`);
-      const unsubTransactions = onSnapshot(transactionsRef, (snapshot) => {
-        const transactionsData: Transaction[] = [];
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          transactionsData.push({
-            id: doc.id,
-            ...data,
-            date: data.date ? new Date(data.date.toDate()) : new Date()
-          } as Transaction);
-        });
-        setTransactions(transactionsData);
-        localStorage.setItem('transactions', JSON.stringify(transactionsData));
-      });
+        // האזנה לשינויים בשיטות תשלום
+        const paymentMethodsRef = collection(db, `users/${user.uid}/paymentMethods`);
+        const unsubPaymentMethods = onSnapshot(
+          paymentMethodsRef, 
+          (snapshot) => {
+            const methodsData: PaymentMethod[] = [];
+            snapshot.forEach((doc) => {
+              methodsData.push({ id: doc.id, ...doc.data() } as PaymentMethod);
+            });
+            setPaymentMethods(methodsData);
+            localStorage.setItem('paymentMethods', JSON.stringify(methodsData));
+          },
+          (error) => {
+            console.error('שגיאה בהאזנה לשיטות תשלום:', error);
+            setError('שגיאה בהאזנה לנתונים מהשרת');
+          }
+        );
 
-      // האזנה לשינויים בחובות והלוואות
-      const debtLoansRef = collection(db, `users/${user.uid}/debtLoans`);
-      const unsubDebtLoans = onSnapshot(debtLoansRef, (snapshot) => {
-        const debtLoansData: DebtLoan[] = [];
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          debtLoansData.push({
-            id: doc.id,
-            ...data,
-            dueDate: data.dueDate ? new Date(data.dueDate.toDate()) : undefined
-          } as DebtLoan);
-        });
-        setDebtLoans(debtLoansData);
-        localStorage.setItem('debtLoans', JSON.stringify(debtLoansData));
-      });
+        // האזנה לשינויים בקטגוריות
+        const categoriesRef = collection(db, `users/${user.uid}/categories`);
+        const unsubCategories = onSnapshot(
+          categoriesRef, 
+          (snapshot) => {
+            const categoriesData: FinancialCategory[] = [];
+            snapshot.forEach((doc) => {
+              categoriesData.push({ id: doc.id, ...doc.data() } as FinancialCategory);
+            });
+            setCategories(categoriesData);
+            localStorage.setItem('financialCategories', JSON.stringify(categoriesData));
+          },
+          (error) => {
+            console.error('שגיאה בהאזנה לקטגוריות:', error);
+          }
+        );
 
-      // ניקוי ההאזנות בעת עזיבת הקומפוננטה
-      return () => {
-        unsubPaymentMethods();
-        unsubCategories();
-        unsubTransactions();
-        unsubDebtLoans();
-      };
+        // האזנה לשינויים בעסקאות
+        const transactionsRef = collection(db, `users/${user.uid}/transactions`);
+        const unsubTransactions = onSnapshot(
+          transactionsRef,
+          (snapshot) => {
+            const transactionsData: Transaction[] = [];
+            snapshot.forEach((doc) => {
+              const data = doc.data();
+              transactionsData.push({
+                id: doc.id,
+                ...data,
+                date: data.date ? new Date(data.date.toDate()) : new Date()
+              } as Transaction);
+            });
+            setTransactions(transactionsData);
+            localStorage.setItem('transactions', JSON.stringify(transactionsData));
+          },
+          (error) => {
+            console.error('שגיאה בהאזנה לעסקאות:', error);
+          }
+        );
 
-    } catch (error) {
-      console.error('שגיאה בהאזנה לשינויים מ-Firebase:', error);
-      setError('אירעה שגיאה בהתחברות ל-Firebase');
-      loadLocalData();
-    } finally {
-      setIsLoading(false);
-    }
+        // האזנה לשינויים בחובות והלוואות
+        const debtLoansRef = collection(db, `users/${user.uid}/debtLoans`);
+        const unsubDebtLoans = onSnapshot(
+          debtLoansRef,
+          (snapshot) => {
+            const debtLoansData: DebtLoan[] = [];
+            snapshot.forEach((doc) => {
+              const data = doc.data();
+              debtLoansData.push({
+                id: doc.id,
+                ...data,
+                dueDate: data.dueDate ? new Date(data.dueDate.toDate()) : undefined
+              } as DebtLoan);
+            });
+            setDebtLoans(debtLoansData);
+            localStorage.setItem('debtLoans', JSON.stringify(debtLoansData));
+          },
+          (error) => {
+            console.error('שגיאה בהאזנה לחובות והלוואות:', error);
+          }
+        );
+
+        setIsLoading(false);
+
+        // ניקוי ההאזנות בעת עזיבת הקומפוננטה
+        return () => {
+          unsubPaymentMethods();
+          unsubCategories();
+          unsubTransactions();
+          unsubDebtLoans();
+        };
+      } catch (error) {
+        console.error('שגיאה בהאזנה לשינויים מ-Firebase:', error);
+        setError('אירעה שגיאה בהתחברות ל-Firebase');
+        loadLocalData();
+        setIsLoading(false);
+      }
+    };
+
+    setupFirebaseConnection();
   }, [user]);
 
   // פונקציה לסנכרון נתונים מקומיים עם Firebase
@@ -866,6 +914,21 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     getPaymentMethodById,
     getCategoryById
   };
+
+  // עדכון סנכרון עם Firebase כשנטענים נתונים מקומיים במצב מחובר
+  useEffect(() => {
+    if (user && isOnline && pendingChanges) {
+      console.log('מסנכרן שינויים מקומיים עם Firebase...');
+      syncLocalDataWithFirebase()
+        .then(() => {
+          console.log('סנכרון הושלם בהצלחה');
+          setPendingChanges(false);
+        })
+        .catch(err => {
+          console.error('שגיאה בסנכרון:', err);
+        });
+    }
+  }, [user, isOnline, pendingChanges]);
 
   return (
     <FinanceContext.Provider value={value}>
