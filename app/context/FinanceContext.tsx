@@ -98,6 +98,13 @@ const defaultCategories: FinancialCategory[] = [
     type: 'income'
   },
   {
+    id: 'misc_income',
+    name: 'שונות',
+    icon: '📋',
+    color: '#607D8B',
+    type: 'income'
+  },
+  {
     id: 'rent',
     name: 'שכר דירה',
     icon: '🏠',
@@ -123,6 +130,13 @@ const defaultCategories: FinancialCategory[] = [
     name: 'חשבונות',
     icon: '💡',
     color: '#2196F3',
+    type: 'expense'
+  },
+  {
+    id: 'misc_expense',
+    name: 'שונות',
+    icon: '📋',
+    color: '#607D8B',
     type: 'expense'
   }
 ];

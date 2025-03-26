@@ -122,7 +122,7 @@ const CreditCardImport = () => {
         amount: charge.chargeAmount,
         date: new Date(charge.chargeDate),
         description: charge.businessName,
-        categoryId: matchedCategory?.id || categories.find(c => c.type === 'expense')?.id || '',
+        categoryId: matchedCategory?.id || categories.find(c => c.type === 'expense' && c.name === 'שונות')?.id || categories.find(c => c.type === 'expense')?.id || '',
         paymentMethodId: paymentMethod?.id || paymentMethods[0]?.id || '',
         type: 'expense'
       };
