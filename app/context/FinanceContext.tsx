@@ -144,14 +144,6 @@ const defaultPaymentMethods: PaymentMethod[] = [
     color: '#2196F3',
     initialBalance: 2000,
     currentBalance: 1500
-  },
-  {
-    id: 'paypal',
-    name: 'PayPal',
-    icon: '🌐',
-    color: '#9C27B0',
-    initialBalance: 500,
-    currentBalance: 700
   }
 ];
 
@@ -351,6 +343,35 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
     setupFirebaseConnection();
   }, [user]);
+
+  // לאחר ה-useEffect שעושה setupFirebaseConnection
+  // נוסיף useEffect נוסף שיבדוק אם קיימת שיטת תשלום PayPal וימחק אותה
+
+  useEffect(() => {
+    // פונקציה למחיקת שיטת תשלום PayPal
+    const removePayPalPaymentMethod = async () => {
+      if (!user || !db || !isOnline) return;
+      
+      try {
+        // בדיקה אם קיימת שיטת תשלום PayPal
+        const paypalMethod = paymentMethods.find(method => method.id === 'paypal');
+        
+        if (paypalMethod) {
+          console.log('מוחק את שיטת התשלום PayPal מפיירבייס...');
+          const methodRef = doc(db, `users/${user.uid}/paymentMethods/paypal`);
+          await deleteDoc(methodRef);
+          console.log('שיטת התשלום PayPal נמחקה בהצלחה');
+        }
+      } catch (error) {
+        console.error('שגיאה במחיקת שיטת תשלום PayPal:', error);
+      }
+    };
+    
+    // הרצת הפונקציה
+    if (paymentMethods.length > 0) {
+      removePayPalPaymentMethod();
+    }
+  }, [user, db, isOnline, paymentMethods]);
 
   // פונקציה לסנכרון נתונים מקומיים עם Firebase
   const syncLocalDataWithFirebase = async () => {
