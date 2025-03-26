@@ -125,7 +125,7 @@ export interface DebtLoan {
   id: string;
   personName: string;
   amount: number;
-  dueDate?: Date;
+  dueDate?: Date | null; // מאפשר גם null וגם undefined
   notes?: string;
   paymentMethodId?: string;
   isDebt: boolean; // true = חוב (אני חייב), false = הלוואה (חייבים לי)

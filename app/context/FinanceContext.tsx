@@ -723,13 +723,21 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         debtLoan.id = uuidv4();
       }
       
-      const newDebtLoans = [...debtLoans, debtLoan];
+      // טיפול בערכים חסרים
+      const processedDebtLoan = {
+        ...debtLoan,
+        dueDate: debtLoan.dueDate || null,
+        notes: debtLoan.notes || '',
+        paymentMethodId: debtLoan.paymentMethodId || ''
+      };
+      
+      const newDebtLoans = [...debtLoans, processedDebtLoan];
       setDebtLoans(newDebtLoans);
       localStorage.setItem('debtLoans', JSON.stringify(newDebtLoans));
       
       if (user && isOnline) {
         const debtLoansRef = collection(db, `users/${user.uid}/debtLoans`);
-        await setDoc(doc(debtLoansRef, debtLoan.id), debtLoan);
+        await setDoc(doc(debtLoansRef, processedDebtLoan.id), processedDebtLoan);
       } else if (user) {
         setPendingChanges(true);
       }
@@ -741,16 +749,24 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
   const updateDebtLoan = async (debtLoan: DebtLoan) => {
     try {
+      // טיפול בערכים חסרים
+      const processedDebtLoan = {
+        ...debtLoan,
+        dueDate: debtLoan.dueDate || null,
+        notes: debtLoan.notes || '',
+        paymentMethodId: debtLoan.paymentMethodId || ''
+      };
+      
       const updatedDebtLoans = debtLoans.map(d => 
-        d.id === debtLoan.id ? debtLoan : d
+        d.id === processedDebtLoan.id ? processedDebtLoan : d
       );
       
       setDebtLoans(updatedDebtLoans);
       localStorage.setItem('debtLoans', JSON.stringify(updatedDebtLoans));
       
       if (user && isOnline) {
-        const debtLoanRef = doc(db, `users/${user.uid}/debtLoans/${debtLoan.id}`);
-        await updateDoc(debtLoanRef, { ...debtLoan });
+        const debtLoanRef = doc(db, `users/${user.uid}/debtLoans/${processedDebtLoan.id}`);
+        await updateDoc(debtLoanRef, { ...processedDebtLoan });
       } else if (user) {
         setPendingChanges(true);
       }

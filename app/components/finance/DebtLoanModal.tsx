@@ -18,7 +18,7 @@ const DebtLoanModal = ({ isOpen, onClose, onSave, debtLoan, paymentMethods }: De
     id: '',
     personName: '',
     amount: 0,
-    dueDate: undefined,
+    dueDate: null,
     notes: '',
     paymentMethodId: '',
     isDebt: true,
@@ -28,14 +28,16 @@ const DebtLoanModal = ({ isOpen, onClose, onSave, debtLoan, paymentMethods }: De
   // איתחול הטופס עם נתוני החוב/הלוואה הקיימים, אם יש
   useEffect(() => {
     if (debtLoan) {
-      setFormData({ ...debtLoan });
+      // וודא שה-dueDate לא undefined
+      const safeDueDate = debtLoan.dueDate || null;
+      setFormData({ ...debtLoan, dueDate: safeDueDate });
     } else {
       // איתחול הטופס לחוב/הלוואה חדש/ה
       setFormData({
         id: uuidv4(),
         personName: '',
         amount: 0,
-        dueDate: undefined,
+        dueDate: null,
         notes: '',
         paymentMethodId: paymentMethods.length > 0 ? paymentMethods[0].id : '',
         isDebt: true,
@@ -55,7 +57,16 @@ const DebtLoanModal = ({ isOpen, onClose, onSave, debtLoan, paymentMethods }: De
   // טיפול בשמירת הטופס
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    
+    // וודא שאין שדות undefined לפני שליחה לפיירבייס
+    const processedData = {
+      ...formData,
+      dueDate: formData.dueDate || null,
+      notes: formData.notes || '',
+      paymentMethodId: formData.paymentMethodId || ''
+    };
+    
+    onSave(processedData);
   };
   
   // אם המודל סגור, לא מציגים כלום
@@ -152,7 +163,8 @@ const DebtLoanModal = ({ isOpen, onClose, onSave, debtLoan, paymentMethods }: De
               id="dueDate"
               value={formData.dueDate ? new Date(formData.dueDate).toISOString().split('T')[0] : ''}
               onChange={(e) => {
-                const value = e.target.value ? new Date(e.target.value) : undefined;
+                // המר את התאריך לאובייקט Date או null אם ריק
+                const value = e.target.value ? new Date(e.target.value) : null;
                 handleChange('dueDate', value);
               }}
               className="w-full p-2 border rounded-md"
@@ -167,7 +179,7 @@ const DebtLoanModal = ({ isOpen, onClose, onSave, debtLoan, paymentMethods }: De
             <select
               id="paymentMethodId"
               value={formData.paymentMethodId || ''}
-              onChange={(e) => handleChange('paymentMethodId', e.target.value || undefined)}
+              onChange={(e) => handleChange('paymentMethodId', e.target.value || '')}
               className="w-full p-2 border rounded-md"
             >
               <option value="">-- ללא אמצעי תשלום --</option>
