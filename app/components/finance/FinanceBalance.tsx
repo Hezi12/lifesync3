@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { FiArrowUp, FiArrowDown, FiInfo, FiTrash2 } from 'react-icons/fi';
 import { PaymentMethod, Transaction } from '../../types';
 import BalanceChart from './BalanceChart';
+import { useFinanceContext } from '../../context/FinanceContext';
 
 // פונקציה להמרת מערך תאריכים ל-30 הימים האחרונים
 const getLast30Days = (): string[] => {
@@ -20,103 +21,31 @@ const getLast30Days = (): string[] => {
 };
 
 const FinanceBalance = () => {
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [totalBalance, setTotalBalance] = useState(0);
+  const { 
+    paymentMethods, 
+    transactions, 
+    totalBalance,
+    debtLoans,
+    isLoading
+  } = useFinanceContext();
+  
   const [balanceHistory, setBalanceHistory] = useState<{date: string, balance: number}[]>([]);
+  const [monthlyChange, setMonthlyChange] = useState(0);
+  const [monthlyChangePercent, setMonthlyChangePercent] = useState(0);
   
-  // טעינת נתונים מ-localStorage
+  // יצירת היסטוריית מצב ההון
   useEffect(() => {
-    // טעינת שיטות תשלום מה-localStorage
-    const savedPaymentMethods = localStorage.getItem('paymentMethods');
-    let methodsToUse: PaymentMethod[] = [];
-    
-    if (savedPaymentMethods) {
-      try {
-        methodsToUse = JSON.parse(savedPaymentMethods);
-      } catch (error) {
-        console.error('שגיאה בטעינת שיטות תשלום:', error);
-        // במקרה של שגיאה, נשתמש בנתונים הדוגמאים
-        methodsToUse = createDefaultPaymentMethods();
-      }
-    } else {
-      // אם אין שיטות תשלום מוגדרות, נשתמש בנתונים הדוגמאים
-      methodsToUse = createDefaultPaymentMethods();
-    }
-    
-    setPaymentMethods(methodsToUse);
-    
-    // טעינת עסקאות מ-localStorage
-    const savedTransactions = localStorage.getItem('transactions');
-    let transactionsToUse: Transaction[] = [];
-    
-    if (savedTransactions) {
-      try {
-        // המרת תאריכים ממחרוזות לאובייקטי Date
-        transactionsToUse = JSON.parse(savedTransactions, (key, value) => {
-          if (key === 'date') {
-            return new Date(value);
-          }
-          return value;
-        });
-      } catch (error) {
-        console.error('שגיאה בטעינת עסקאות:', error);
-        transactionsToUse = [];
-      }
-    }
-    
-    setTransactions(transactionsToUse);
-    
-    // עדכון מצב ההון הכולל משיטות התשלום בפועל
-    const total = methodsToUse.reduce((sum: number, method: PaymentMethod) => sum + method.currentBalance, 0);
-    setTotalBalance(total);
-    
-    // יצירת היסטוריית מצב ההון ל-30 הימים האחרונים
-    updateBalanceHistory(transactionsToUse, methodsToUse);
-    
-  }, []);
+    if (isLoading) return;
+    updateBalanceHistory();
+  }, [paymentMethods, transactions, debtLoans, isLoading]);
   
-  // פונקציה ליצירת שיטות תשלום ברירת מחדל
-  const createDefaultPaymentMethods = (): PaymentMethod[] => {
-    const samplePaymentMethods: PaymentMethod[] = [
-      {
-        id: '1',
-        name: 'מזומן',
-        icon: '💵',
-        color: '#4CAF50',
-        initialBalance: 1000,
-        currentBalance: 800
-      },
-      {
-        id: '2',
-        name: 'אשראי',
-        icon: '💳',
-        color: '#2196F3',
-        initialBalance: 2000,
-        currentBalance: 1500
-      },
-      {
-        id: '3',
-        name: 'PayPal',
-        icon: '🌐',
-        color: '#9C27B0',
-        initialBalance: 500,
-        currentBalance: 700
-      }
-    ];
-    
-    // שומר את ברירות המחדל ב-localStorage אם הם לא קיימים
-    localStorage.setItem('paymentMethods', JSON.stringify(samplePaymentMethods));
-    return samplePaymentMethods;
-  };
-  
-  // עדכון היסטוריית מצב ההון לפי עסקאות אמיתיות
-  const updateBalanceHistory = (transactions: Transaction[], methods: PaymentMethod[]) => {
+  // חישוב היסטוריית מצב ההון לפי עסקאות אמיתיות
+  const updateBalanceHistory = () => {
     const dates = getLast30Days();
     const history: {date: string, balance: number}[] = [];
     
     // חישוב היתרה ההתחלתית (סכום כל היתרות ההתחלתיות)
-    const initialTotal = methods.reduce((sum, method) => sum + method.initialBalance, 0);
+    const initialTotal = paymentMethods.reduce((sum, method) => sum + method.initialBalance, 0);
     
     // מיון העסקאות לפי תאריך (מהישן לחדש)
     const sortedTransactions = [...transactions].sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -157,111 +86,38 @@ const FinanceBalance = () => {
     });
     
     setBalanceHistory(history);
-  };
-  
-  // חישוב שינוי במצב ההון בחודש האחרון
-  const calculateMonthlyChange = (): number => {
-    if (balanceHistory.length >= 2) {
-      const lastMonth = balanceHistory[0].balance;
-      const current = balanceHistory[balanceHistory.length - 1].balance;
-      return current - lastMonth;
+    
+    // חישוב שינוי
+    if (history.length >= 2) {
+      const lastMonth = history[0].balance;
+      const current = history[history.length - 1].balance;
+      const change = current - lastMonth;
+      setMonthlyChange(change);
+      setMonthlyChangePercent(totalBalance ? Math.round((change / totalBalance) * 100) : 0);
     }
-    return 0;
   };
   
-  const monthlyChange = calculateMonthlyChange();
-  const monthlyChangePercent = totalBalance ? Math.round((monthlyChange / totalBalance) * 100) : 0;
+  // חישוב התחייבויות פתוחות (חובות)
+  const calculateOpenDebts = () => {
+    return debtLoans
+      .filter(item => !item.isPaid && item.isDebt)
+      .reduce((sum, item) => sum + item.amount, 0);
+  };
   
-  // האזנה לשינויים ב-localStorage ולאירועים מותאמים אישית
-  useEffect(() => {
-    // טיפול בשינויים מאירועים מותאמים אישית (לעדכונים באותו החלון)
-    const handlePaymentMethodsEvent = (event: CustomEvent<{ paymentMethods: PaymentMethod[] }>) => {
-      const methods = event.detail.paymentMethods;
-      setPaymentMethods(methods);
-      
-      // עדכון מצב ההון הכולל
-      const total = methods.reduce((sum: number, method: PaymentMethod) => sum + method.currentBalance, 0);
-      setTotalBalance(total);
-      
-      // עדכון היסטוריית מצב ההון
-      updateBalanceHistory(transactions, methods);
-    };
-    
-    // טיפול בשינויים בעסקאות (לעדכון העסקאות האחרונות)
-    const handleTransactionsEvent = (event: CustomEvent<{ transactions: Transaction[] }>) => {
-      const updatedTransactions = event.detail.transactions;
-      setTransactions(updatedTransactions);
-      
-      // עדכון היסטוריית מצב ההון עם העסקאות החדשות
-      updateBalanceHistory(updatedTransactions, paymentMethods);
-    };
-
-    // טיפול בשינויים מ-localStorage (לעדכונים מחלונות אחרים)
-    const handleStorageChange = () => {
-      const savedPaymentMethods = localStorage.getItem('paymentMethods');
-      if (savedPaymentMethods) {
-        try {
-          const methods = JSON.parse(savedPaymentMethods);
-          setPaymentMethods(methods);
-          
-          // עדכון מצב ההון הכולל
-          const total = methods.reduce((sum: number, method: PaymentMethod) => sum + method.currentBalance, 0);
-          setTotalBalance(total);
-        } catch (error) {
-          console.error('שגיאה בעדכון שיטות תשלום:', error);
-        }
-      }
-      
-      // טעינת עסקאות מעודכנות אם השתנו
-      const savedTransactions = localStorage.getItem('transactions');
-      if (savedTransactions) {
-        try {
-          // המרת תאריכים ממחרוזות לאובייקטי Date
-          const parsedTransactions = JSON.parse(savedTransactions, (key, value) => {
-            if (key === 'date') {
-              return new Date(value);
-            }
-            return value;
-          });
-          setTransactions(parsedTransactions);
-          
-          // עדכון היסטוריית מצב ההון
-          if (parsedTransactions) {
-            updateBalanceHistory(parsedTransactions, paymentMethods);
-          }
-        } catch (error) {
-          console.error('שגיאה בטעינת עסקאות מעודכנות:', error);
-        }
-      } else {
-        // אם אין עסקאות, נאפס אותן
-        setTransactions([]);
-        updateBalanceHistory([], paymentMethods);
-      }
-    };
-    
-    // האזנה לשינויים ב-localStorage
-    window.addEventListener('storage', handleStorageChange);
-    
-    // האזנה לאירועים מותאמים אישית
-    window.addEventListener('payment-methods-updated', handlePaymentMethodsEvent as EventListener);
-    window.addEventListener('transactions-updated', handleTransactionsEvent as EventListener);
-    
-    // ניקוי בעת יציאה
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('payment-methods-updated', handlePaymentMethodsEvent as EventListener);
-      window.removeEventListener('transactions-updated', handleTransactionsEvent as EventListener);
-    };
-  }, [transactions, paymentMethods]);
-
+  // חישוב נכסים פתוחים (הלוואות שנתתי)
+  const calculateOpenLoans = () => {
+    return debtLoans
+      .filter(item => !item.isPaid && !item.isDebt)
+      .reduce((sum, item) => sum + item.amount, 0);
+  };
+  
+  const openDebts = calculateOpenDebts();
+  const openLoans = calculateOpenLoans();
+  
   // מחיקת עסקה - ישירות ללא אישור
   const deleteTransaction = (id: string) => {
     const updatedTransactions = transactions.filter(transaction => transaction.id !== id);
-    setTransactions(updatedTransactions);
-    
-    // שמירה מיידית ב-localStorage
-    localStorage.setItem('transactions', JSON.stringify(updatedTransactions));
-    
+    // עדכון מצב המקומי ושמירה ב-localStorage
     // שליחת אירוע עדכון
     const event = new CustomEvent('transactions-updated', { 
       detail: { transactions: updatedTransactions }
@@ -272,77 +128,96 @@ const FinanceBalance = () => {
   // מחיקת כל העסקאות - ישירות ללא אישור
   const clearAllTransactions = () => {
     // מחיקה מהמצב המקומי
-    setTransactions([]);
-    
-    // שמירה מיידית ב-localStorage
-    localStorage.setItem('transactions', JSON.stringify([]));
+    // עדכון היסטוריית מצב ההון
+    updateBalanceHistory();
     
     // שליחת אירוע עדכון
     const event = new CustomEvent('transactions-updated', { 
       detail: { transactions: [] }
     });
     window.dispatchEvent(event);
-    
-    // עדכון היסטוריית מצב ההון
-    updateBalanceHistory([], paymentMethods);
   };
   
   return (
     <div className="space-y-6">
-      {/* סיכום מצב ההון */}
-      <div className="card">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-xl font-semibold mb-1">סך מצב הון</h2>
-            <p className="text-3xl font-bold text-primary-700">₪{totalBalance.toLocaleString()}</p>
+      {/* סיכום מצב הון כולל */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* מצב הון */}
+        <div className="card p-4 md:col-span-1">
+          <h3 className="text-lg font-semibold mb-3">מצב הון כולל</h3>
+          
+          <div className="text-3xl font-bold mb-3">
+            <span className={totalBalance >= 0 ? "text-green-600" : "text-red-600"}>
+              {totalBalance.toLocaleString()} ₪
+            </span>
           </div>
           
-          <div className="flex items-center mt-4 md:mt-0">
-            <div className={`flex items-center ${monthlyChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          <div className="flex items-center text-sm">
+            <span>שינוי חודשי:</span>
+            <span className={`ml-1 ${monthlyChange >= 0 ? "text-green-600" : "text-red-600"} flex items-center`}>
               {monthlyChange >= 0 ? <FiArrowUp className="mr-1" /> : <FiArrowDown className="mr-1" />}
-              <span className="font-semibold">
-                ₪{Math.abs(monthlyChange).toLocaleString()} ({monthlyChangePercent}%)
-              </span>
+              {monthlyChange.toLocaleString()} ₪ 
+              <span className="ml-1 text-gray-500">({monthlyChangePercent}%)</span>
+            </span>
+          </div>
+        </div>
+        
+        {/* חובות והלוואות */}
+        <div className="card p-4 md:col-span-1">
+          <h3 className="text-lg font-semibold mb-3">חובות והלוואות פתוחים</h3>
+          
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <span className="text-gray-600">חובות:</span>
+              <span className="text-red-600 font-semibold">-{openDebts.toLocaleString()} ₪</span>
             </div>
-            <div className="ml-2 text-gray-500 flex items-center">
-              <FiInfo className="w-4 h-4" />
-              <span className="mr-1 text-sm">החודש האחרון</span>
+            
+            <div className="flex justify-between">
+              <span className="text-gray-600">הלוואות:</span>
+              <span className="text-green-600 font-semibold">+{openLoans.toLocaleString()} ₪</span>
+            </div>
+            
+            <div className="pt-2 border-t flex justify-between">
+              <span className="font-semibold">מצב נטו:</span>
+              <span className={`font-semibold ${openLoans - openDebts >= 0 ? "text-green-600" : "text-red-600"}`}>
+                {(openLoans - openDebts).toLocaleString()} ₪
+              </span>
             </div>
           </div>
         </div>
         
-        {/* גרף מצב ההון */}
-        <div className="mt-6 h-64">
-          <BalanceChart data={balanceHistory} />
+        {/* אמצעי תשלום */}
+        <div className="card p-4 md:col-span-1">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-lg font-semibold">אמצעי תשלום</h3>
+            <div className="text-xs text-gray-500">סה"כ: {paymentMethods.reduce((sum, method) => sum + method.currentBalance, 0).toLocaleString()} ₪</div>
+          </div>
+          
+          <div className="space-y-3 max-h-[120px] overflow-y-auto">
+            {paymentMethods.map(method => (
+              <div key={method.id} className="flex justify-between items-center">
+                <div className="flex items-center">
+                  <span className="w-6 h-6 flex items-center justify-center mr-2" style={{ color: method.color }}>{method.icon}</span>
+                  <span>{method.name}</span>
+                </div>
+                <span className="font-medium">{method.currentBalance.toLocaleString()} ₪</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
       
-      {/* פירוט שיטות תשלום */}
-      <div className="card">
-        <h2 className="text-xl font-semibold mb-4">יתרות לפי שיטות תשלום</h2>
-        
-        <div className="space-y-4">
-          {paymentMethods.map((method) => (
-            <div key={method.id} className="flex items-center justify-between p-3 border rounded-md">
-              <div className="flex items-center">
-                <div 
-                  className="w-10 h-10 rounded-full flex items-center justify-center mr-3 text-xl"
-                  style={{ backgroundColor: `${method.color}20`, color: method.color }}
-                >
-                  {method.icon}
-                </div>
-                <div>
-                  <p className="font-medium">{method.name}</p>
-                  <p className="text-gray-500 text-sm">יתרה התחלתית: ₪{method.initialBalance.toLocaleString()}</p>
-                </div>
-              </div>
-              
-              <div className="text-xl font-semibold">
-                ₪{method.currentBalance.toLocaleString()}
-              </div>
-            </div>
-          ))}
+      {/* גרף התפתחות מצב הון */}
+      <div className="card p-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">התפתחות מצב הון - 30 ימים אחרונים</h3>
+          <div className="text-sm text-gray-500 flex items-center">
+            <FiInfo className="mr-1" /> 
+            המצב מחושב מסך יתרות אמצעי התשלום בתוספת הלוואות שנתת ובהפחתת חובות
+          </div>
         </div>
+        
+        <BalanceChart data={balanceHistory} />
       </div>
       
       {/* עסקאות אחרונות */}

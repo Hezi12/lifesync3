@@ -1,137 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FiPlus, FiCheck, FiX, FiEdit, FiTrash2 } from 'react-icons/fi';
 import { DebtLoan, PaymentMethod } from '../../types';
 import DebtLoanModal from './DebtLoanModal';
+import { useFinanceContext } from '../../context/FinanceContext';
 
 const FinanceDebts = () => {
-  const [debtLoans, setDebtLoans] = useState<DebtLoan[]>([]);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const { 
+    debtLoans, 
+    paymentMethods, 
+    addDebtLoan, 
+    updateDebtLoan, 
+    deleteDebtLoan, 
+    toggleDebtLoanPaid,
+    getPaymentMethodById
+  } = useFinanceContext();
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDebtLoan, setEditingDebtLoan] = useState<DebtLoan | null>(null);
   const [filterType, setFilterType] = useState<'all' | 'debt' | 'loan'>('all');
-  
-  // טעינת נתונים מ-localStorage
-  useEffect(() => {
-    // טעינת שיטות תשלום מ-localStorage
-    const savedPaymentMethods = localStorage.getItem('paymentMethods');
-    if (savedPaymentMethods) {
-      try {
-        setPaymentMethods(JSON.parse(savedPaymentMethods));
-      } catch (error) {
-        console.error('שגיאה בטעינת שיטות תשלום:', error);
-        createDefaultPaymentMethods();
-      }
-    } else {
-      createDefaultPaymentMethods();
-    }
-    
-    // טעינת חובות והלוואות מ-localStorage
-    const savedDebtLoans = localStorage.getItem('debtLoans');
-    if (savedDebtLoans) {
-      try {
-        // המרת תאריכים ממחרוזות לאובייקטי Date
-        const parsedDebtLoans = JSON.parse(savedDebtLoans, (key, value) => {
-          if (key === 'dueDate' && value) {
-            return new Date(value);
-          }
-          return value;
-        });
-        setDebtLoans(parsedDebtLoans);
-      } catch (error) {
-        console.error('שגיאה בטעינת חובות והלוואות:', error);
-        createDefaultDebtLoans();
-      }
-    } else {
-      createDefaultDebtLoans();
-    }
-  }, []);
-  
-  // שמירת חובות והלוואות ב-localStorage בכל פעם שיש שינוי
-  useEffect(() => {
-    if (debtLoans.length > 0 || localStorage.getItem('debtLoans')) {
-      localStorage.setItem('debtLoans', JSON.stringify(debtLoans));
-      
-      // שליחת אירוע מותאם אישית לעדכון כל הרכיבים באתר
-      const event = new CustomEvent('debtLoans-updated', { 
-        detail: { debtLoans }
-      });
-      window.dispatchEvent(event);
-    }
-  }, [debtLoans]);
-  
-  // יצירת שיטות תשלום ברירת מחדל
-  const createDefaultPaymentMethods = () => {
-    const samplePaymentMethods: PaymentMethod[] = [
-      {
-        id: '1',
-        name: 'מזומן',
-        icon: '💵',
-        color: '#4CAF50',
-        initialBalance: 1000,
-        currentBalance: 800
-      },
-      {
-        id: '2',
-        name: 'אשראי',
-        icon: '💳',
-        color: '#2196F3',
-        initialBalance: 2000,
-        currentBalance: 1500
-      },
-      {
-        id: '3',
-        name: 'PayPal',
-        icon: '🌐',
-        color: '#9C27B0',
-        initialBalance: 500,
-        currentBalance: 700
-      }
-    ];
-    
-    setPaymentMethods(samplePaymentMethods);
-    localStorage.setItem('paymentMethods', JSON.stringify(samplePaymentMethods));
-  };
-  
-  // יצירת חובות והלוואות ברירת מחדל
-  const createDefaultDebtLoans = () => {
-    const sampleDebtLoans: DebtLoan[] = [
-      {
-        id: '1',
-        personName: 'אמא',
-        amount: 300,
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 15)),
-        paymentMethodId: '1',
-        isDebt: true,
-        isPaid: false,
-        notes: 'קניות לבית'
-      },
-      {
-        id: '2',
-        personName: 'יוסי',
-        amount: 500,
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 7)),
-        paymentMethodId: '3',
-        isDebt: false,
-        isPaid: false,
-        notes: 'הלוואה לחתונה'
-      },
-      {
-        id: '3',
-        personName: 'שירה',
-        amount: 200,
-        dueDate: new Date(new Date().setDate(new Date().getDate() - 5)),
-        paymentMethodId: '2',
-        isDebt: true,
-        isPaid: true,
-        notes: 'ארוחת ערב'
-      }
-    ];
-    
-    setDebtLoans(sampleDebtLoans);
-    localStorage.setItem('debtLoans', JSON.stringify(sampleDebtLoans));
-  };
   
   // סינון חובות והלוואות לפי סוג
   const filteredDebtLoans = debtLoans.filter(item => {
@@ -193,31 +81,22 @@ const FinanceDebts = () => {
   };
   
   // הוספת או עדכון חוב/הלוואה
-  const handleSaveDebtLoan = (debtLoan: DebtLoan) => {
+  const handleSaveDebtLoan = async (debtLoan: DebtLoan) => {
     if (editingDebtLoan) {
       // עדכון
-      setDebtLoans(debtLoans.map(item => 
-        item.id === debtLoan.id ? debtLoan : item
-      ));
+      await updateDebtLoan(debtLoan);
     } else {
       // הוספה
-      setDebtLoans([...debtLoans, debtLoan]);
+      await addDebtLoan(debtLoan);
     }
     
     setIsModalOpen(false);
     setEditingDebtLoan(null);
   };
   
-  // מחיקת חוב/הלוואה - ישירות ללא אישור
-  const deleteDebtLoan = (id: string) => {
-    setDebtLoans(debtLoans.filter(item => item.id !== id));
-  };
-  
   // סימון חוב/הלוואה כשולם/לא שולם
-  const togglePaidStatus = (id: string) => {
-    setDebtLoans(debtLoans.map(item => 
-      item.id === id ? { ...item, isPaid: !item.isPaid } : item
-    ));
+  const handleTogglePaidStatus = async (id: string, isPaid: boolean) => {
+    await toggleDebtLoanPaid(id, !isPaid);
   };
   
   // בדיקה אם התאריך עבר
@@ -248,158 +127,175 @@ const FinanceDebts = () => {
       </div>
       
       {/* סיכום */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card bg-red-50">
-          <h3 className="text-sm font-medium text-gray-500">חובות (אני חייב)</h3>
-          <p className="text-2xl font-bold text-red-600">₪{summary.debts.toLocaleString()}</p>
-        </div>
-        
-        <div className="card bg-green-50">
-          <h3 className="text-sm font-medium text-gray-500">הלוואות (חייבים לי)</h3>
-          <p className="text-2xl font-bold text-green-600">₪{summary.loans.toLocaleString()}</p>
-        </div>
-        
-        <div className={`card ${summary.balance >= 0 ? 'bg-blue-50' : 'bg-orange-50'}`}>
-          <h3 className="text-sm font-medium text-gray-500">מאזן</h3>
-          <p className={`text-2xl font-bold ${summary.balance >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
-            ₪{summary.balance.toLocaleString()}
-          </p>
+      <div className="card bg-gray-50 p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="text-center">
+            <h3 className="text-gray-600 mb-1">סה"כ חובות (אני חייב)</h3>
+            <p className="text-xl font-semibold text-red-600">{summary.debts.toLocaleString()} ₪</p>
+          </div>
+          
+          <div className="text-center">
+            <h3 className="text-gray-600 mb-1">סה"כ הלוואות (חייבים לי)</h3>
+            <p className="text-xl font-semibold text-green-600">{summary.loans.toLocaleString()} ₪</p>
+          </div>
+          
+          <div className="text-center">
+            <h3 className="text-gray-600 mb-1">מאזן כולל</h3>
+            <p className={`text-xl font-semibold ${summary.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {summary.balance.toLocaleString()} ₪
+            </p>
+          </div>
         </div>
       </div>
       
-      {/* רשימת חובות והלוואות */}
-      <div className="card">
-        <div className="flex justify-end mb-4">
-          <div className="flex bg-gray-100 rounded-md">
-            <button
-              className={`px-3 py-1 text-sm rounded-r-md ${filterType === 'all' ? 'bg-primary-500 text-white' : ''}`}
-              onClick={() => setFilterType('all')}
-            >
-              הכל
-            </button>
-            <button
-              className={`px-3 py-1 text-sm ${filterType === 'debt' ? 'bg-primary-500 text-white' : ''}`}
-              onClick={() => setFilterType('debt')}
-            >
-              חובות
-            </button>
-            <button
-              className={`px-3 py-1 text-sm rounded-l-md ${filterType === 'loan' ? 'bg-primary-500 text-white' : ''}`}
-              onClick={() => setFilterType('loan')}
-            >
-              הלוואות
-            </button>
-          </div>
-        </div>
+      {/* מסנן */}
+      <div className="flex space-x-2 space-x-reverse">
+        <button
+          className={`px-3 py-1 rounded-md ${filterType === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-700'}`}
+          onClick={() => setFilterType('all')}
+        >
+          הכל
+        </button>
         
-        <div className="space-y-3">
-          {sortedDebtLoans.length > 0 ? (
-            sortedDebtLoans.map((item) => {
-              const paymentMethod = paymentMethods.find(m => m.id === item.paymentMethodId);
-              const overdue = !item.isPaid && isOverdue(item.dueDate);
-              
-              return (
-                <div 
-                  key={item.id} 
-                  className={`p-4 border rounded-md ${
-                    item.isPaid ? 'bg-gray-50 border-gray-200' : overdue ? 'border-red-300' : 'border-gray-200'
-                  }`}
-                >
-                  <div className="flex justify-between mb-2">
-                    <div className="flex items-center">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ml-2 ${
-                        item.isDebt ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
+        <button
+          className={`px-3 py-1 rounded-md ${filterType === 'debt' ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+          onClick={() => setFilterType('debt')}
+        >
+          חובות
+        </button>
+        
+        <button
+          className={`px-3 py-1 rounded-md ${filterType === 'loan' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+          onClick={() => setFilterType('loan')}
+        >
+          הלוואות
+        </button>
+      </div>
+      
+      {/* רשימת חובות והלוואות */}
+      <div className="space-y-3">
+        {sortedDebtLoans.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            אין {filterType === 'all' ? 'חובות והלוואות' : filterType === 'debt' ? 'חובות' : 'הלוואות'} להצגה
+          </div>
+        ) : (
+          sortedDebtLoans.map(item => {
+            const paymentMethod = item.paymentMethodId ? getPaymentMethodById(item.paymentMethodId) : undefined;
+            return (
+              <div 
+                key={item.id} 
+                className={`card p-4 border-r-4 ${
+                  item.isPaid 
+                    ? 'border-gray-300 bg-gray-50' 
+                    : item.isDebt 
+                      ? 'border-red-500' 
+                      : 'border-green-500'
+                } transition-all hover:shadow-md`}
+              >
+                <div className="flex justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <h3 className={`font-semibold text-lg ${item.isPaid ? 'text-gray-500' : ''}`}>
+                        {item.personName}
+                      </h3>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        item.isPaid
+                          ? 'bg-gray-200 text-gray-700'
+                          : item.isDebt
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-green-100 text-green-700'
                       }`}>
-                        {item.isDebt ? '↑' : '↓'}
-                      </div>
-                      <div>
-                        <h3 className="font-medium flex items-center">
-                          {item.personName}
-                          {item.isPaid && (
-                            <span className="mr-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                              שולם
-                            </span>
-                          )}
-                          {overdue && (
-                            <span className="mr-2 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
-                              באיחור
-                            </span>
-                          )}
-                        </h3>
-                        <div className="text-sm text-gray-500">
-                          {item.dueDate && (
-                            <span className="ml-2">תאריך יעד: {formatDate(item.dueDate)}</span>
-                          )}
-                          {paymentMethod && (
-                            <span>אמצעי תשלום: {paymentMethod.name}</span>
-                          )}
-                        </div>
-                      </div>
+                        {item.isPaid ? 'שולם' : item.isDebt ? 'אני חייב' : 'חייבים לי'}
+                      </span>
+                      
+                      {!item.isPaid && item.dueDate && isOverdue(item.dueDate) && (
+                        <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">
+                          איחור
+                        </span>
+                      )}
                     </div>
                     
-                    <div className="text-center">
-                      <div className={`text-lg font-semibold ${
-                        item.isDebt ? 'text-red-600' : 'text-green-600'
-                      }`}>
-                        {item.isDebt ? '-' : '+'}₪{item.amount.toLocaleString()}
+                    <div className="mt-1 flex items-center space-x-3 space-x-reverse text-sm text-gray-600">
+                      <div className="flex items-center">
+                        <span className={`font-semibold ${item.isPaid ? 'text-gray-500' : item.isDebt ? 'text-red-600' : 'text-green-600'}`}>
+                          {item.amount.toLocaleString()} ₪
+                        </span>
                       </div>
+                      
+                      {item.dueDate && (
+                        <div className="flex items-center">
+                          <span>תאריך יעד: </span>
+                          <span className={`mr-1 ${!item.isPaid && isOverdue(item.dueDate) ? 'text-red-600 font-semibold' : ''}`}>
+                            {formatDate(item.dueDate)}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {paymentMethod && (
+                        <div className="flex items-center">
+                          <span>אמצעי תשלום: </span>
+                          <span className="mr-1 flex items-center">
+                            <span style={{ color: paymentMethod.color }} className="ml-1">{paymentMethod.icon}</span>
+                            {paymentMethod.name}
+                          </span>
+                        </div>
+                      )}
                     </div>
+                    
+                    {item.notes && (
+                      <div className="mt-2 text-sm text-gray-600">
+                        {item.notes}
+                      </div>
+                    )}
                   </div>
                   
-                  {item.notes && (
-                    <div className="text-sm text-gray-600 mb-2 bg-gray-50 p-2 rounded border">
-                      {item.notes}
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-end space-x-2 space-x-reverse">
+                  <div className="flex flex-col space-y-1 self-start">
                     <button
-                      onClick={() => togglePaidStatus(item.id)}
-                      className={`p-1.5 rounded-md ${
-                        item.isPaid 
-                          ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' 
+                      onClick={() => handleTogglePaidStatus(item.id, item.isPaid)}
+                      className={`p-1.5 rounded-full ${
+                        item.isPaid
+                          ? 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                           : 'bg-green-100 text-green-600 hover:bg-green-200'
                       }`}
                       title={item.isPaid ? 'סמן כלא שולם' : 'סמן כשולם'}
                     >
-                      {item.isPaid ? <FiX /> : <FiCheck />}
+                      {item.isPaid ? <FiX size={16} /> : <FiCheck size={16} />}
                     </button>
                     
                     <button
                       onClick={() => openEditModal(item)}
-                      className="p-1.5 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200"
+                      className="p-1.5 rounded-full bg-gray-100 text-blue-600 hover:bg-gray-200"
                       title="ערוך"
                     >
-                      <FiEdit />
+                      <FiEdit size={16} />
                     </button>
                     
                     <button
                       onClick={() => deleteDebtLoan(item.id)}
-                      className="p-1.5 bg-red-100 text-red-600 rounded-md hover:bg-red-200"
+                      className="p-1.5 rounded-full bg-gray-100 text-red-600 hover:bg-gray-200"
                       title="מחק"
                     >
-                      <FiTrash2 />
+                      <FiTrash2 size={16} />
                     </button>
                   </div>
                 </div>
-              );
-            })
-          ) : (
-            <p className="text-center text-gray-500 py-4">אין חובות או הלוואות</p>
-          )}
-        </div>
+              </div>
+            );
+          })
+        )}
       </div>
       
-      {/* מודל להוספת/עריכת חוב/הלוואה */}
+      {/* מודל הוספה/עריכה */}
       {isModalOpen && (
         <DebtLoanModal
+          isOpen={isModalOpen}
           onClose={() => {
             setIsModalOpen(false);
             setEditingDebtLoan(null);
           }}
           onSave={handleSaveDebtLoan}
-          paymentMethods={paymentMethods}
           debtLoan={editingDebtLoan}
+          paymentMethods={paymentMethods}
         />
       )}
     </div>

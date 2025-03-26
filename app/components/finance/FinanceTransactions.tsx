@@ -1,319 +1,50 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FiArrowUp, FiArrowDown, FiPlus, FiFilter, FiSearch, FiChevronLeft, FiChevronRight, FiTrash2 } from 'react-icons/fi';
 import { Transaction, PaymentMethod, FinancialCategory } from '../../types';
 import TransactionModal from './TransactionModal';
 import TransactionChart from './TransactionChart';
+import { useFinanceContext } from '../../context/FinanceContext';
 
 const FinanceTransactions = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [categories, setCategories] = useState<FinancialCategory[]>([]);
+  const { 
+    transactions, 
+    paymentMethods, 
+    categories, 
+    addTransaction, 
+    updateTransaction, 
+    deleteTransaction,
+    getPaymentMethodById,
+    getCategoryById
+  } = useFinanceContext();
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   
-  // טעינת נתונים מ-localStorage
-  useEffect(() => {
-    // טעינת שיטות תשלום
-    const savedPaymentMethods = localStorage.getItem('paymentMethods');
-    if (savedPaymentMethods) {
-      try {
-        setPaymentMethods(JSON.parse(savedPaymentMethods));
-      } catch (error) {
-        console.error('שגיאה בטעינת שיטות תשלום:', error);
-        createDefaultPaymentMethods();
-      }
-    } else {
-      createDefaultPaymentMethods();
-    }
-    
-    // טעינת קטגוריות
-    const savedCategories = localStorage.getItem('financialCategories');
-    if (savedCategories) {
-      try {
-        setCategories(JSON.parse(savedCategories));
-      } catch (error) {
-        console.error('שגיאה בטעינת קטגוריות:', error);
-        createDefaultCategories();
-      }
-    } else {
-      createDefaultCategories();
-    }
-    
-    // טעינת עסקאות
-    const savedTransactions = localStorage.getItem('transactions');
-    if (savedTransactions) {
-      try {
-        // המרת תאריכים ממחרוזות לאובייקטי Date
-        const parsedTransactions = JSON.parse(savedTransactions, (key, value) => {
-          if (key === 'date') {
-            return new Date(value);
-          }
-          return value;
-        });
-        setTransactions(parsedTransactions);
-      } catch (error) {
-        console.error('שגיאה בטעינת עסקאות:', error);
-        createSampleTransactions();
-      }
-    } else {
-      createSampleTransactions();
-    }
-  }, []);
-  
-  // שמירת עסקאות ב-localStorage בכל פעם שיש שינוי
-  useEffect(() => {
-    if (transactions.length > 0) {
-      localStorage.setItem('transactions', JSON.stringify(transactions));
-      
-      // שליחת אירוע מותאם אישית לעדכון כל הרכיבים באתר
-      const event = new CustomEvent('transactions-updated', { 
-        detail: { transactions }
-      });
-      window.dispatchEvent(event);
-    }
-  }, [transactions]);
-  
-  // יצירת שיטות תשלום ברירת מחדל
-  const createDefaultPaymentMethods = () => {
-    const samplePaymentMethods: PaymentMethod[] = [
-      {
-        id: '1',
-        name: 'מזומן',
-        icon: '💵',
-        color: '#4CAF50',
-        initialBalance: 1000,
-        currentBalance: 800
-      },
-      {
-        id: '2',
-        name: 'אשראי',
-        icon: '💳',
-        color: '#2196F3',
-        initialBalance: 2000,
-        currentBalance: 1500
-      },
-      {
-        id: '3',
-        name: 'PayPal',
-        icon: '🌐',
-        color: '#9C27B0',
-        initialBalance: 500,
-        currentBalance: 700
-      }
-    ];
-    
-    setPaymentMethods(samplePaymentMethods);
-  };
-  
-  // יצירת קטגוריות ברירת מחדל
-  const createDefaultCategories = () => {
-    const sampleCategories: FinancialCategory[] = [
-      {
-        id: 'salary',
-        name: 'משכורת',
-        icon: '💼',
-        color: '#4CAF50',
-        type: 'income'
-      },
-      {
-        id: 'bonus',
-        name: 'בונוס',
-        icon: '🎁',
-        color: '#8BC34A',
-        type: 'income'
-      },
-      {
-        id: 'rent',
-        name: 'שכר דירה',
-        icon: '🏠',
-        color: '#F44336',
-        type: 'expense'
-      },
-      {
-        id: 'food',
-        name: 'מזון',
-        icon: '🍕',
-        color: '#FF9800',
-        type: 'expense'
-      },
-      {
-        id: 'entertainment',
-        name: 'בידור',
-        icon: '🎬',
-        color: '#9C27B0',
-        type: 'expense'
-      },
-      {
-        id: 'utilities',
-        name: 'חשבונות',
-        icon: '💡',
-        color: '#2196F3',
-        type: 'expense'
-      }
-    ];
-    
-    setCategories(sampleCategories);
-  };
-  
-  // יצירת עסקאות דוגמאיות
-  const createSampleTransactions = () => {
-    // בדיקה אם יש כבר עסקאות ב-localStorage - אם יש, לא נייצר חדשות
-    const existingTransactionsJson = localStorage.getItem('transactions');
-    if (existingTransactionsJson) {
-      try {
-        const existingTransactions = JSON.parse(existingTransactionsJson, (key, value) => {
-          if (key === 'date') return new Date(value);
-          return value;
-        });
-        
-        if (existingTransactions && existingTransactions.length > 0) {
-          // יש עסקאות קיימות, נשתמש בהן
-          setTransactions(existingTransactions);
-          return;
-        }
-      } catch (error) {
-        console.error('שגיאה בטעינת עסקאות קיימות:', error);
-        // נמשיך לייצר עסקאות דוגמאיות במקרה של שגיאה
-      }
-    }
-    
-    // יצירת עסקאות דוגמאיות רק אם אין קיימות
-    const sampleTransactions: Transaction[] = [];
-    const today = new Date();
-    const thisMonth = today.getMonth();
-    const thisYear = today.getFullYear();
-    
-    // הכנסות
-    sampleTransactions.push({
-      id: '1',
-      amount: 5000,
-      date: new Date(thisYear, thisMonth, 10),
-      categoryId: 'salary',
-      paymentMethodId: '2',
-      description: 'משכורת חודשית',
-      type: 'income'
-    });
-    
-    sampleTransactions.push({
-      id: '2',
-      amount: 500,
-      date: new Date(thisYear, thisMonth, 15),
-      categoryId: 'bonus',
-      paymentMethodId: '3',
-      description: 'בונוס מהעבודה',
-      type: 'income'
-    });
-    
-    // הוצאות
-    sampleTransactions.push({
-      id: '3',
-      amount: 1500,
-      date: new Date(thisYear, thisMonth, 5),
-      categoryId: 'rent',
-      paymentMethodId: '2',
-      description: 'שכר דירה',
-      type: 'expense'
-    });
-    
-    sampleTransactions.push({
-      id: '4',
-      amount: 200,
-      date: new Date(thisYear, thisMonth, 8),
-      categoryId: 'food',
-      paymentMethodId: '1',
-      description: 'קניות בסופר',
-      type: 'expense'
-    });
-    
-    sampleTransactions.push({
-      id: '5',
-      amount: 100,
-      date: new Date(thisYear, thisMonth, 12),
-      categoryId: 'entertainment',
-      paymentMethodId: '1',
-      description: 'סרט וארוחה',
-      type: 'expense'
-    });
-    
-    sampleTransactions.push({
-      id: '6',
-      amount: 300,
-      date: new Date(thisYear, thisMonth, 18),
-      categoryId: 'utilities',
-      paymentMethodId: '3',
-      description: 'חשבון חשמל',
-      type: 'expense'
-    });
-    
-    sampleTransactions.push({
-      id: '7',
-      amount: 150,
-      date: new Date(thisYear, thisMonth, 20),
-      categoryId: 'food',
-      paymentMethodId: '1',
-      description: 'קניות בסופר',
-      type: 'expense'
-    });
-    
-    sampleTransactions.push({
-      id: '8',
-      amount: 50,
-      date: new Date(thisYear, thisMonth, 22),
-      categoryId: 'entertainment',
-      paymentMethodId: '1',
-      description: 'ספר חדש',
-      type: 'expense'
-    });
-    
-    // לא נוסיף יותר את העסקה הקבועה מהחודש הקודם שגורמת לשגיאה
-    
-    setTransactions(sampleTransactions);
-    localStorage.setItem('transactions', JSON.stringify(sampleTransactions));
-  };
-  
-  // מחיקת עסקה - ישירות ללא אישור
-  const deleteTransaction = (id: string) => {
-    const updatedTransactions = transactions.filter(transaction => transaction.id !== id);
-    setTransactions(updatedTransactions);
-    
-    // שמירה מיידית ב-localStorage
-    localStorage.setItem('transactions', JSON.stringify(updatedTransactions));
-    
-    // שליחת אירוע עדכון
-    const event = new CustomEvent('transactions-updated', { 
-      detail: { transactions: updatedTransactions }
-    });
-    window.dispatchEvent(event);
-  };
-  
-  // סינון עסקאות לפי חודש
+  // פילטור עסקאות לפי חודש נוכחי
   const filteredTransactionsByMonth = transactions.filter(transaction => {
-    return transaction.date.getMonth() === currentMonth.getMonth() &&
-           transaction.date.getFullYear() === currentMonth.getFullYear();
+    const transactionMonth = transaction.date.getMonth();
+    const transactionYear = transaction.date.getFullYear();
+    
+    return (
+      transactionMonth === currentMonth.getMonth() &&
+      transactionYear === currentMonth.getFullYear()
+    );
   });
   
-  // סינון עסקאות לפי סוג ומטרת חיפוש
+  // פילטור עסקאות לפי סוג וחיפוש
   const filteredTransactions = filteredTransactionsByMonth.filter(transaction => {
-    // סינון לפי סוג
-    if (filterType !== 'all' && transaction.type !== filterType) {
-      return false;
-    }
+    const matchesType = filterType === 'all' || transaction.type === filterType;
     
-    // סינון לפי חיפוש
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const description = transaction.description.toLowerCase();
-      const category = categories.find(c => c.id === transaction.categoryId)?.name.toLowerCase() || '';
-      const method = paymentMethods.find(m => m.id === transaction.paymentMethodId)?.name.toLowerCase() || '';
-      
-      return description.includes(query) || category.includes(query) || method.includes(query);
-    }
+    const matchesSearch = searchQuery
+      ? transaction.description.toLowerCase().includes(searchQuery.toLowerCase())
+      : true;
     
-    return true;
+    return matchesType && matchesSearch;
   });
   
   // מיון עסקאות לפי תאריך (מהחדש לישן)
@@ -343,101 +74,129 @@ const FinanceTransactions = () => {
   
   const summary = calculateSummary();
   
-  // התקדמות לחודש הבא
+  // ניווט בין חודשים
   const goToNextMonth = () => {
     const nextMonth = new Date(currentMonth);
     nextMonth.setMonth(nextMonth.getMonth() + 1);
     setCurrentMonth(nextMonth);
   };
   
-  // חזרה לחודש הקודם
   const goToPreviousMonth = () => {
-    const prevMonth = new Date(currentMonth);
-    prevMonth.setMonth(prevMonth.getMonth() - 1);
-    setCurrentMonth(prevMonth);
+    const previousMonth = new Date(currentMonth);
+    previousMonth.setMonth(previousMonth.getMonth() - 1);
+    setCurrentMonth(previousMonth);
   };
   
-  // קפיצה לחודש הנוכחי
   const goToCurrentMonth = () => {
     setCurrentMonth(new Date());
   };
   
-  // פורמט שם החודש והשנה
+  // פורמט של חודש ושנה
   const formatMonthYear = (): string => {
     const months = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
-    const month = months[currentMonth.getMonth()];
+    const monthName = months[currentMonth.getMonth()];
     const year = currentMonth.getFullYear();
     
-    return `${month} ${year}`;
+    return `${monthName} ${year}`;
   };
   
   // פתיחת מודל להוספת עסקה
-  const openTransactionModal = () => {
+  const openAddModal = () => {
+    setEditingTransaction(null);
     setIsModalOpen(true);
   };
   
-  // טיפול בהוספת עסקה חדשה
-  const handleAddTransaction = (transaction: Transaction) => {
-    setTransactions([...transactions, transaction]);
-    setIsModalOpen(false);
+  // פתיחת מודל לעריכת עסקה
+  const openEditModal = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setIsModalOpen(true);
   };
   
-  // חישוב עסקאות לפי קטגוריות לתרשים עוגה
-  const getTransactionsByCategory = (type: 'income' | 'expense') => {
-    const categoryTotals: { [key: string]: number } = {};
+  // הוספה או עדכון של עסקה
+  const handleSaveTransaction = async (transaction: Transaction) => {
+    if (editingTransaction) {
+      // עדכון
+      await updateTransaction(transaction);
+    } else {
+      // הוספה
+      await addTransaction(transaction);
+    }
     
-    filteredTransactionsByMonth.forEach(transaction => {
-      if (transaction.type === type) {
-        const { categoryId, amount } = transaction;
-        categoryTotals[categoryId] = (categoryTotals[categoryId] || 0) + amount;
+    setIsModalOpen(false);
+    setEditingTransaction(null);
+  };
+  
+  // סינון עסקאות לפי קטגוריה ויצירת נתונים לתרשים
+  const getTransactionsByCategory = (type: 'income' | 'expense') => {
+    const categoryMap = new Map<string, number>();
+    
+    filteredTransactionsByMonth
+      .filter(transaction => transaction.type === type)
+      .forEach(transaction => {
+        const categoryId = transaction.categoryId;
+        const currentAmount = categoryMap.get(categoryId) || 0;
+        categoryMap.set(categoryId, currentAmount + transaction.amount);
+      });
+    
+    const data: { name: string; value: number; color: string }[] = [];
+    
+    Array.from(categoryMap.entries()).forEach(([categoryId, amount]) => {
+      const category = getCategoryById(categoryId);
+      
+      if (category) {
+        data.push({
+          name: category.name,
+          value: amount,
+          color: category.color
+        });
       }
     });
     
-    return Object.entries(categoryTotals).map(([categoryId, amount]) => {
-      const category = categories.find(c => c.id === categoryId);
-      return {
-        id: categoryId,
-        name: category?.name || 'קטגוריה לא ידועה',
-        value: amount,
-        color: category?.color || '#999999'
-      };
-    });
+    return data;
   };
   
-  const incomeByCategory = getTransactionsByCategory('income');
-  const expenseByCategory = getTransactionsByCategory('expense');
+  // נתונים לתרשימים
+  const incomeData = getTransactionsByCategory('income');
+  const expenseData = getTransactionsByCategory('expense');
+  
+  // פורמט תאריך
+  const formatDate = (date: Date): string => {
+    return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+  };
   
   return (
     <div className="space-y-6">
-      {/* כותרת וכפתור הוספה */}
+      {/* כותרת, ניווט בין חודשים וכפתור הוספה */}
       <div className="flex justify-between items-center">
-        <div className="flex items-center">
+        <div className="flex items-center space-x-4 space-x-reverse">
           <button
             onClick={goToPreviousMonth}
-            className="p-2 rounded-full hover:bg-gray-100"
+            className="p-1 rounded-full hover:bg-gray-100"
+            title="חודש קודם"
           >
-            <FiChevronRight className="h-5 w-5 text-gray-600" />
+            <FiChevronRight size={20} />
           </button>
           
-          <h2 className="text-xl font-semibold mx-4">{formatMonthYear()}</h2>
+          <h2 className="text-xl font-semibold">{formatMonthYear()}</h2>
           
           <button
             onClick={goToNextMonth}
-            className="p-2 rounded-full hover:bg-gray-100"
+            className="p-1 rounded-full hover:bg-gray-100"
+            title="חודש הבא"
           >
-            <FiChevronLeft className="h-5 w-5 text-gray-600" />
+            <FiChevronLeft size={20} />
           </button>
           
           <button
             onClick={goToCurrentMonth}
-            className="ml-2 px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-md"
+            className="text-sm text-primary-600 hover:underline"
           >
-            חודש נוכחי
+            החודש הנוכחי
           </button>
         </div>
         
         <button
-          onClick={openTransactionModal}
+          onClick={openAddModal}
           className="btn-primary flex items-center"
         >
           <FiPlus className="ml-1" />
@@ -445,137 +204,187 @@ const FinanceTransactions = () => {
         </button>
       </div>
       
-      {/* סיכום חודשי */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card bg-green-50">
-          <h3 className="text-sm font-medium text-gray-500">הכנסות</h3>
-          <p className="text-2xl font-bold text-green-600">₪{summary.income.toLocaleString()}</p>
-        </div>
-        
-        <div className="card bg-red-50">
-          <h3 className="text-sm font-medium text-gray-500">הוצאות</h3>
-          <p className="text-2xl font-bold text-red-600">₪{summary.expense.toLocaleString()}</p>
-        </div>
-        
-        <div className={`card ${summary.balance >= 0 ? 'bg-blue-50' : 'bg-orange-50'}`}>
-          <h3 className="text-sm font-medium text-gray-500">מאזן</h3>
-          <p className={`text-2xl font-bold ${summary.balance >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
-            ₪{summary.balance.toLocaleString()}
-          </p>
-        </div>
-      </div>
-      
-      {/* פילוח הכנסות והוצאות */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="card">
-          <h3 className="text-lg font-semibold mb-4">הכנסות לפי קטגוריה</h3>
-          <div className="h-64">
-            <TransactionChart data={incomeByCategory} />
+      {/* סיכום */}
+      <div className="card bg-gray-50 p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="text-center">
+            <h3 className="text-gray-600 mb-1">סה"כ הכנסות</h3>
+            <p className="text-xl font-semibold text-green-600">{summary.income.toLocaleString()} ₪</p>
           </div>
-        </div>
-        
-        <div className="card">
-          <h3 className="text-lg font-semibold mb-4">הוצאות לפי קטגוריה</h3>
-          <div className="h-64">
-            <TransactionChart data={expenseByCategory} />
-          </div>
-        </div>
-      </div>
-      
-      {/* רשימת עסקאות */}
-      <div className="card">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">עסקאות</h3>
           
-          <div className="flex">
-            <div className="relative ml-2">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="חיפוש..."
-                className="py-1 pl-8 pr-2 border rounded-md text-sm"
-              />
-              <FiSearch className="absolute right-2 top-2 text-gray-400" />
-            </div>
-            
-            <div className="flex bg-gray-100 rounded-md">
-              <button
-                className={`px-3 py-1 text-sm rounded-r-md ${filterType === 'all' ? 'bg-primary-500 text-white' : ''}`}
-                onClick={() => setFilterType('all')}
-              >
-                הכל
-              </button>
-              <button
-                className={`px-3 py-1 text-sm ${filterType === 'income' ? 'bg-primary-500 text-white' : ''}`}
-                onClick={() => setFilterType('income')}
-              >
-                הכנסות
-              </button>
-              <button
-                className={`px-3 py-1 text-sm rounded-l-md ${filterType === 'expense' ? 'bg-primary-500 text-white' : ''}`}
-                onClick={() => setFilterType('expense')}
-              >
-                הוצאות
-              </button>
-            </div>
+          <div className="text-center">
+            <h3 className="text-gray-600 mb-1">סה"כ הוצאות</h3>
+            <p className="text-xl font-semibold text-red-600">{summary.expense.toLocaleString()} ₪</p>
+          </div>
+          
+          <div className="text-center">
+            <h3 className="text-gray-600 mb-1">מאזן חודשי</h3>
+            <p className={`text-xl font-semibold ${summary.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {summary.balance.toLocaleString()} ₪
+            </p>
           </div>
         </div>
-        
-        <div className="space-y-2">
-          {sortedTransactions.length > 0 ? (
-            sortedTransactions.map((transaction) => {
-              const category = categories.find(c => c.id === transaction.categoryId);
-              const method = paymentMethods.find(m => m.id === transaction.paymentMethodId);
-              
-              return (
-                <div key={transaction.id} className="flex items-center justify-between p-3 border rounded-md">
-                  <div className="flex items-center">
-                    <div 
-                      className="w-10 h-10 rounded-full flex items-center justify-center mr-3 text-xl"
-                      style={{ backgroundColor: `${category?.color}20`, color: category?.color }}
-                    >
-                      {category?.icon}
-                    </div>
-                    <div>
-                      <p className="font-medium">{transaction.description}</p>
-                      <p className="text-gray-500 text-sm">
-                        {transaction.date.getDate()}/{transaction.date.getMonth() + 1}/{transaction.date.getFullYear()} • {method?.name} • {category?.name}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <div className={`text-lg font-semibold mr-4 ${
-                      transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {transaction.type === 'income' ? '+' : '-'}₪{transaction.amount.toLocaleString()}
-                    </div>
-                    
-                    <button
-                      onClick={() => deleteTransaction(transaction.id)}
-                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded-full"
-                      title="מחק עסקה"
-                    >
-                      <FiTrash2 size={18} />
-                    </button>
-                  </div>
-                </div>
-              );
-            })
+      </div>
+      
+      {/* תרשימים */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="card p-4">
+          <h3 className="text-lg font-semibold mb-3">התפלגות הכנסות</h3>
+          {incomeData.length === 0 ? (
+            <div className="h-52 flex items-center justify-center text-gray-500">
+              אין נתוני הכנסות לחודש זה
+            </div>
           ) : (
-            <p className="text-center text-gray-500 py-4">אין עסקאות לתקופה זו</p>
+            <div className="h-52">
+              <TransactionChart data={incomeData} />
+            </div>
+          )}
+        </div>
+        
+        <div className="card p-4">
+          <h3 className="text-lg font-semibold mb-3">התפלגות הוצאות</h3>
+          {expenseData.length === 0 ? (
+            <div className="h-52 flex items-center justify-center text-gray-500">
+              אין נתוני הוצאות לחודש זה
+            </div>
+          ) : (
+            <div className="h-52">
+              <TransactionChart data={expenseData} />
+            </div>
           )}
         </div>
       </div>
       
-      {/* מודל להוספת עסקה */}
+      {/* חיפוש ומסנן */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-4 md:space-y-0">
+        <div className="flex space-x-2 space-x-reverse">
+          <button
+            className={`px-3 py-1 rounded-md ${filterType === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-700'}`}
+            onClick={() => setFilterType('all')}
+          >
+            הכל
+          </button>
+          
+          <button
+            className={`px-3 py-1 rounded-md ${filterType === 'income' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+            onClick={() => setFilterType('income')}
+          >
+            הכנסות
+          </button>
+          
+          <button
+            className={`px-3 py-1 rounded-md ${filterType === 'expense' ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+            onClick={() => setFilterType('expense')}
+          >
+            הוצאות
+          </button>
+        </div>
+        
+        <div className="relative">
+          <FiSearch className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="חיפוש לפי תיאור..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-3 pr-10 py-2 border rounded-md w-full md:w-64"
+          />
+        </div>
+      </div>
+      
+      {/* רשימת עסקאות */}
+      <div className="space-y-3">
+        {sortedTransactions.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            אין עסקאות להצגה בחודש זה
+          </div>
+        ) : (
+          sortedTransactions.map(transaction => {
+            const category = getCategoryById(transaction.categoryId);
+            const paymentMethod = getPaymentMethodById(transaction.paymentMethodId);
+            
+            return (
+              <div 
+                key={transaction.id} 
+                className={`card p-4 border-r-4 ${
+                  transaction.type === 'income' ? 'border-green-500' : 'border-red-500'
+                } transition-all hover:shadow-md`}
+                onClick={() => openEditModal(transaction)}
+              >
+                <div className="flex justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <h3 className="font-semibold text-lg">{transaction.description}</h3>
+                      
+                      {category && (
+                        <span 
+                          className="text-xs px-2 py-0.5 rounded-full flex items-center" 
+                          style={{ backgroundColor: `${category.color}25`, color: category.color }}
+                        >
+                          <span className="ml-1">{category.icon}</span>
+                          {category.name}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="mt-1 flex items-center space-x-3 space-x-reverse text-sm text-gray-600">
+                      <div className="flex items-center">
+                        <span className={transaction.type === 'income' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+                          {transaction.type === 'income' ? '+' : '-'}{transaction.amount.toLocaleString()} ₪
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <span>{formatDate(transaction.date)}</span>
+                      </div>
+                      
+                      {paymentMethod && (
+                        <div className="flex items-center">
+                          <span>אמצעי תשלום: </span>
+                          <span className="mr-1 flex items-center">
+                            <span style={{ color: paymentMethod.color }} className="ml-1">{paymentMethod.icon}</span>
+                            {paymentMethod.name}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col items-center justify-center">
+                    <span className={`text-2xl ${transaction.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
+                      {transaction.type === 'income' ? <FiArrowUp /> : <FiArrowDown />}
+                    </span>
+                    
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation(); // מניעת הפעלת האירוע של הדיב הראשי
+                        deleteTransaction(transaction.id);
+                      }}
+                      className="mt-2 p-1.5 rounded-full bg-gray-100 text-red-600 hover:bg-gray-200"
+                      title="מחק"
+                    >
+                      <FiTrash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+      
+      {/* מודל הוספה/עריכה */}
       {isModalOpen && (
         <TransactionModal
-          onClose={() => setIsModalOpen(false)}
-          onAdd={handleAddTransaction}
-          categories={categories}
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditingTransaction(null);
+          }}
+          onSave={handleSaveTransaction}
+          transaction={editingTransaction}
           paymentMethods={paymentMethods}
+          categories={categories}
         />
       )}
     </div>

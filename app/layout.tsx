@@ -5,6 +5,7 @@ import Sidebar from './components/layout/Sidebar';
 import { AppProvider } from './context/AppContext';
 import { CalendarProvider } from './context/CalendarContext';
 import { DocumentsProvider } from './context/DocumentsContext';
+import { FinanceProvider } from './context/FinanceContext';
 
 export default function RootLayout({
   children,
@@ -24,12 +25,14 @@ export default function RootLayout({
         <AppProvider>
           <CalendarProvider>
             <DocumentsProvider>
-              <div className="flex">
-                <Sidebar />
-                <main className="flex-grow min-h-screen mr-16 p-6">
-                  {children}
-                </main>
-              </div>
+              <FinanceProvider>
+                <div className="flex">
+                  <Sidebar />
+                  <main className="flex-grow min-h-screen mr-16 p-6">
+                    {children}
+                  </main>
+                </div>
+              </FinanceProvider>
             </DocumentsProvider>
           </CalendarProvider>
         </AppProvider>

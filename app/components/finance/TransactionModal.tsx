@@ -1,216 +1,258 @@
 'use client';
 
-import { useState } from 'react';
-import { FiX, FiCheck } from 'react-icons/fi';
+import { useState, useEffect } from 'react';
+import { FiX } from 'react-icons/fi';
 import { Transaction, PaymentMethod, FinancialCategory } from '../../types';
+import { v4 as uuidv4 } from 'uuid';
 
 interface TransactionModalProps {
+  isOpen: boolean;
   onClose: () => void;
-  onAdd: (transaction: Transaction) => void;
-  categories: FinancialCategory[];
+  onSave: (transaction: Transaction) => void;
+  transaction: Transaction | null;
   paymentMethods: PaymentMethod[];
+  categories: FinancialCategory[];
 }
 
-const TransactionModal: React.FC<TransactionModalProps> = ({
-  onClose,
-  onAdd,
-  categories,
-  paymentMethods
-}) => {
-  const [transactionType, setTransactionType] = useState<'income' | 'expense'>('expense');
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [paymentMethodId, setPaymentMethodId] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+const TransactionModal = ({ 
+  isOpen, 
+  onClose, 
+  onSave, 
+  transaction, 
+  paymentMethods, 
+  categories 
+}: TransactionModalProps) => {
+  const [formData, setFormData] = useState<Transaction>({
+    id: '',
+    amount: 0,
+    date: new Date(),
+    description: '',
+    categoryId: '',
+    paymentMethodId: '',
+    type: 'expense'
+  });
   
-  // סינון קטגוריות לפי סוג העסקה
-  const filteredCategories = categories.filter(category => category.type === transactionType);
+  // איתחול הטופס עם נתוני העסקה הקיימת, אם יש
+  useEffect(() => {
+    if (transaction) {
+      setFormData({ ...transaction });
+    } else {
+      // איתחול הטופס לעסקה חדשה
+      setFormData({
+        id: uuidv4(),
+        amount: 0,
+        date: new Date(),
+        description: '',
+        categoryId: categories.length > 0 ? categories.filter(c => c.type === 'expense')[0]?.id || '' : '',
+        paymentMethodId: paymentMethods.length > 0 ? paymentMethods[0].id : '',
+        type: 'expense'
+      });
+    }
+  }, [transaction, categories, paymentMethods]);
   
-  // בדיקת תקינות הטופס
-  const isFormValid = 
-    amount.trim() !== '' && 
-    !isNaN(Number(amount)) && 
-    Number(amount) > 0 &&
-    description.trim() !== '' &&
-    categoryId !== '' &&
-    paymentMethodId !== '' &&
-    date !== '';
-  
-  // הוספת עסקה חדשה
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // טיפול בשינויים בשדות הטופס
+  const handleChange = (field: keyof Transaction, value: any) => {
+    setFormData({
+      ...formData,
+      [field]: value
+    });
     
-    if (!isFormValid) return;
-    
-    const newTransaction: Transaction = {
-      id: Date.now().toString(),
-      amount: Number(amount),
-      description,
-      categoryId,
-      paymentMethodId,
-      date: new Date(date),
-      type: transactionType
-    };
-    
-    onAdd(newTransaction);
+    // אם שינינו את סוג העסקה, יש לעדכן גם את הקטגוריה
+    if (field === 'type') {
+      const matchingCategories = categories.filter(c => c.type === value);
+      if (matchingCategories.length > 0) {
+        setFormData((prev) => ({
+          ...prev,
+          type: value as 'income' | 'expense',
+          categoryId: matchingCategories[0].id
+        }));
+      }
+    }
   };
   
+  // טיפול בשמירת הטופס
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+  
+  // אם המודל סגור, לא מציגים כלום
+  if (!isOpen) return null;
+  
+  // פילטור קטגוריות לפי סוג העסקה
+  const filteredCategories = categories.filter(c => c.type === formData.type);
+  
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
-        <div className="p-4 border-b flex justify-between items-center">
-          <h3 className="text-xl font-semibold">עסקה חדשה</h3>
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex justify-center items-center p-4">
+      <div className="bg-white rounded-lg w-full max-w-lg">
+        <div className="flex justify-between items-center p-4 border-b">
+          <h2 className="text-xl font-medium">
+            {transaction ? 'עריכת עסקה' : 'הוספת עסקה חדשה'}
+          </h2>
           <button
+            className="text-gray-400 hover:text-gray-600"
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
           >
-            <FiX className="w-5 h-5" />
+            <FiX size={24} />
           </button>
         </div>
         
-        <form onSubmit={handleSubmit}>
-          <div className="p-4 space-y-4">
-            {/* סוג העסקה */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">סוג עסקה</label>
-              <div className="flex w-full rounded-md overflow-hidden border">
-                <button
-                  type="button"
-                  className={`flex-1 py-2 text-center ${
-                    transactionType === 'expense' 
-                      ? 'bg-red-500 text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                  onClick={() => setTransactionType('expense')}
-                >
-                  הוצאה
-                </button>
-                <button
-                  type="button"
-                  className={`flex-1 py-2 text-center ${
-                    transactionType === 'income' 
-                      ? 'bg-green-500 text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                  onClick={() => setTransactionType('income')}
-                >
-                  הכנסה
-                </button>
-              </div>
-            </div>
-            
-            {/* סכום */}
-            <div>
-              <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
-                סכום
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <span className="text-gray-500">₪</span>
-                </div>
-                <input
-                  type="number"
-                  id="amount"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="הזן סכום"
-                  min="0"
-                  step="0.01"
-                  className="block w-full pr-10 py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500"
-                />
-              </div>
-            </div>
-            
-            {/* תיאור */}
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                תיאור
-              </label>
-              <input
-                type="text"
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="הזן תיאור"
-                className="block w-full py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-            
-            {/* קטגוריה */}
-            <div>
-              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-                קטגוריה
-              </label>
-              <select
-                id="category"
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="block w-full py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500"
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          {/* סוג עסקה: הכנסה או הוצאה */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">סוג עסקה:</label>
+            <div className="flex">
+              <button
+                type="button"
+                className={`flex-1 py-2 border-l ${
+                  formData.type === 'income'
+                    ? 'bg-green-100 text-green-800 border-green-300'
+                    : 'bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200'
+                }`}
+                onClick={() => handleChange('type', 'income')}
               >
-                <option value="">בחר קטגוריה</option>
-                {filteredCategories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.icon} {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            {/* שיטת תשלום */}
-            <div>
-              <label htmlFor="paymentMethod" className="block text-sm font-medium text-gray-700 mb-1">
-                שיטת תשלום
-              </label>
-              <select
-                id="paymentMethod"
-                value={paymentMethodId}
-                onChange={(e) => setPaymentMethodId(e.target.value)}
-                className="block w-full py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500"
+                הכנסה
+              </button>
+              
+              <button
+                type="button"
+                className={`flex-1 py-2 ${
+                  formData.type === 'expense'
+                    ? 'bg-red-100 text-red-800 border-red-300'
+                    : 'bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200'
+                }`}
+                onClick={() => handleChange('type', 'expense')}
               >
-                <option value="">בחר שיטת תשלום</option>
-                {paymentMethods.map((method) => (
-                  <option key={method.id} value={method.id}>
-                    {method.icon} {method.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            {/* תאריך */}
-            <div>
-              <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
-                תאריך
-              </label>
-              <input
-                type="date"
-                id="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="block w-full py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500"
-              />
+                הוצאה
+              </button>
             </div>
           </div>
           
-          <div className="p-4 border-t flex justify-end">
+          {/* סכום */}
+          <div>
+            <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
+              סכום:
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                id="amount"
+                value={formData.amount}
+                onChange={(e) => handleChange('amount', Number(e.target.value))}
+                className="w-full p-2 border rounded-md pl-8"
+                min="0"
+                step="0.01"
+                required
+              />
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2">₪</span>
+            </div>
+          </div>
+          
+          {/* תיאור */}
+          <div>
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+              תיאור:
+            </label>
+            <input
+              type="text"
+              id="description"
+              value={formData.description}
+              onChange={(e) => handleChange('description', e.target.value)}
+              className="w-full p-2 border rounded-md"
+              required
+            />
+          </div>
+          
+          {/* תאריך */}
+          <div>
+            <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
+              תאריך:
+            </label>
+            <input
+              type="date"
+              id="date"
+              value={formData.date.toISOString().split('T')[0]}
+              onChange={(e) => handleChange('date', new Date(e.target.value))}
+              className="w-full p-2 border rounded-md"
+              required
+            />
+          </div>
+          
+          {/* קטגוריה */}
+          <div>
+            <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700 mb-1">
+              קטגוריה:
+            </label>
+            <select
+              id="categoryId"
+              value={formData.categoryId}
+              onChange={(e) => handleChange('categoryId', e.target.value)}
+              className="w-full p-2 border rounded-md"
+              required
+            >
+              <option value="" disabled>בחר קטגוריה</option>
+              {filteredCategories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.icon} {category.name}
+                </option>
+              ))}
+            </select>
+            
+            {filteredCategories.length === 0 && (
+              <p className="text-red-500 text-sm mt-1">
+                אין קטגוריות מסוג {formData.type === 'income' ? 'הכנסה' : 'הוצאה'}. אנא צור קטגוריה תחילה.
+              </p>
+            )}
+          </div>
+          
+          {/* שיטת תשלום */}
+          <div>
+            <label htmlFor="paymentMethodId" className="block text-sm font-medium text-gray-700 mb-1">
+              אמצעי תשלום:
+            </label>
+            <select
+              id="paymentMethodId"
+              value={formData.paymentMethodId}
+              onChange={(e) => handleChange('paymentMethodId', e.target.value)}
+              className="w-full p-2 border rounded-md"
+              required
+            >
+              <option value="" disabled>בחר אמצעי תשלום</option>
+              {paymentMethods.map((method) => (
+                <option key={method.id} value={method.id}>
+                  {method.icon} {method.name}
+                </option>
+              ))}
+            </select>
+            
+            {paymentMethods.length === 0 && (
+              <p className="text-red-500 text-sm mt-1">
+                אין אמצעי תשלום. אנא צור אמצעי תשלום תחילה.
+              </p>
+            )}
+          </div>
+          
+          {/* כפתורי פעולה */}
+          <div className="flex justify-end space-x-2 space-x-reverse pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 mr-2 text-gray-600 hover:bg-gray-100 rounded-md"
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
             >
               ביטול
             </button>
+            
             <button
               type="submit"
-              disabled={!isFormValid}
-              className={`px-4 py-2 rounded-md flex items-center ${
-                isFormValid 
-                  ? 'bg-primary-500 text-white hover:bg-primary-600' 
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
+              className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+              disabled={
+                !formData.description || 
+                formData.amount <= 0 || 
+                !formData.categoryId || 
+                !formData.paymentMethodId
+              }
             >
-              <FiCheck className="mr-1" />
-              שמור
+              {transaction ? 'עדכון' : 'הוספה'}
             </button>
           </div>
         </form>

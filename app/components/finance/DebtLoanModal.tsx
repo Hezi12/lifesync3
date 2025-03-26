@@ -1,241 +1,228 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FiX, FiCheck } from 'react-icons/fi';
+import { FiX } from 'react-icons/fi';
 import { DebtLoan, PaymentMethod } from '../../types';
+import { v4 as uuidv4 } from 'uuid';
 
 interface DebtLoanModalProps {
+  isOpen: boolean;
   onClose: () => void;
   onSave: (debtLoan: DebtLoan) => void;
-  paymentMethods: PaymentMethod[];
   debtLoan: DebtLoan | null;
+  paymentMethods: PaymentMethod[];
 }
 
-const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
-  onClose,
-  onSave,
-  paymentMethods,
-  debtLoan
-}) => {
-  const [isDebt, setIsDebt] = useState(true);
-  const [personName, setPersonName] = useState('');
-  const [amount, setAmount] = useState('');
-  const [paymentMethodId, setPaymentMethodId] = useState('');
-  const [isPaid, setIsPaid] = useState(false);
-  const [dueDate, setDueDate] = useState('');
-  const [notes, setNotes] = useState('');
+const DebtLoanModal = ({ isOpen, onClose, onSave, debtLoan, paymentMethods }: DebtLoanModalProps) => {
+  const [formData, setFormData] = useState<DebtLoan>({
+    id: '',
+    personName: '',
+    amount: 0,
+    dueDate: undefined,
+    notes: '',
+    paymentMethodId: '',
+    isDebt: true,
+    isPaid: false
+  });
   
-  // אם מדובר בעריכה, למלא את השדות
+  // איתחול הטופס עם נתוני החוב/הלוואה הקיימים, אם יש
   useEffect(() => {
     if (debtLoan) {
-      setIsDebt(debtLoan.isDebt);
-      setPersonName(debtLoan.personName);
-      setAmount(debtLoan.amount.toString());
-      setPaymentMethodId(debtLoan.paymentMethodId || '');
-      setIsPaid(debtLoan.isPaid);
-      
-      if (debtLoan.dueDate) {
-        setDueDate(debtLoan.dueDate.toISOString().split('T')[0]);
-      }
-      
-      if (debtLoan.notes) {
-        setNotes(debtLoan.notes);
-      }
+      setFormData({ ...debtLoan });
+    } else {
+      // איתחול הטופס לחוב/הלוואה חדש/ה
+      setFormData({
+        id: uuidv4(),
+        personName: '',
+        amount: 0,
+        dueDate: undefined,
+        notes: '',
+        paymentMethodId: paymentMethods.length > 0 ? paymentMethods[0].id : '',
+        isDebt: true,
+        isPaid: false
+      });
     }
-  }, [debtLoan]);
+  }, [debtLoan, paymentMethods]);
   
-  // בדיקת תקינות הטופס
-  const isFormValid = 
-    personName.trim() !== '' && 
-    amount.trim() !== '' && 
-    !isNaN(Number(amount)) && 
-    Number(amount) > 0;
-  
-  // הוספה או עדכון של חוב/הלוואה
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!isFormValid) return;
-    
-    const newDebtLoan: DebtLoan = {
-      id: debtLoan?.id || Date.now().toString(),
-      personName,
-      amount: Number(amount),
-      paymentMethodId: paymentMethodId || undefined,
-      isDebt,
-      isPaid,
-      dueDate: dueDate ? new Date(dueDate) : undefined,
-      notes: notes.trim() || undefined
-    };
-    
-    onSave(newDebtLoan);
+  // טיפול בשינויים בשדות הטופס
+  const handleChange = (field: keyof DebtLoan, value: any) => {
+    setFormData({
+      ...formData,
+      [field]: value
+    });
   };
   
+  // טיפול בשמירת הטופס
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+  
+  // אם המודל סגור, לא מציגים כלום
+  if (!isOpen) return null;
+  
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
-        <div className="p-4 border-b flex justify-between items-center">
-          <h3 className="text-xl font-semibold">
-            {debtLoan ? 'עריכת' : 'הוספת'} {isDebt ? 'חוב' : 'הלוואה'}
-          </h3>
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex justify-center items-center p-4">
+      <div className="bg-white rounded-lg w-full max-w-lg">
+        <div className="flex justify-between items-center p-4 border-b">
+          <h2 className="text-xl font-medium">
+            {debtLoan ? 'עריכת חוב/הלוואה' : 'הוספת חוב/הלוואה חדש/ה'}
+          </h2>
           <button
+            className="text-gray-400 hover:text-gray-600"
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
           >
-            <FiX className="w-5 h-5" />
+            <FiX size={24} />
           </button>
         </div>
         
-        <form onSubmit={handleSubmit}>
-          <div className="p-4 space-y-4">
-            {/* סוג (חוב או הלוואה) */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">סוג</label>
-              <div className="flex w-full rounded-md overflow-hidden border">
-                <button
-                  type="button"
-                  className={`flex-1 py-2 text-center ${
-                    isDebt 
-                      ? 'bg-red-500 text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                  onClick={() => setIsDebt(true)}
-                >
-                  חוב (אני חייב)
-                </button>
-                <button
-                  type="button"
-                  className={`flex-1 py-2 text-center ${
-                    !isDebt 
-                      ? 'bg-green-500 text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                  onClick={() => setIsDebt(false)}
-                >
-                  הלוואה (חייבים לי)
-                </button>
-              </div>
-            </div>
-            
-            {/* שם האדם */}
-            <div>
-              <label htmlFor="personName" className="block text-sm font-medium text-gray-700 mb-1">
-                שם האדם
-              </label>
-              <input
-                type="text"
-                id="personName"
-                value={personName}
-                onChange={(e) => setPersonName(e.target.value)}
-                placeholder="הזן שם"
-                className="block w-full py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-            
-            {/* סכום */}
-            <div>
-              <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
-                סכום
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <span className="text-gray-500">₪</span>
-                </div>
-                <input
-                  type="number"
-                  id="amount"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="הזן סכום"
-                  min="0"
-                  step="0.01"
-                  className="block w-full pr-10 py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500"
-                />
-              </div>
-            </div>
-            
-            {/* שיטת תשלום */}
-            <div>
-              <label htmlFor="paymentMethod" className="block text-sm font-medium text-gray-700 mb-1">
-                שיטת תשלום (אופציונלי)
-              </label>
-              <select
-                id="paymentMethod"
-                value={paymentMethodId}
-                onChange={(e) => setPaymentMethodId(e.target.value)}
-                className="block w-full py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500"
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          {/* סוג: חוב או הלוואה */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">סוג:</label>
+            <div className="flex">
+              <button
+                type="button"
+                className={`flex-1 py-2 border-l ${
+                  formData.isDebt
+                    ? 'bg-red-100 text-red-800 border-red-300'
+                    : 'bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200'
+                }`}
+                onClick={() => handleChange('isDebt', true)}
               >
-                <option value="">ללא שיטת תשלום</option>
-                {paymentMethods.map((method) => (
-                  <option key={method.id} value={method.id}>
-                    {method.icon} {method.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            {/* תאריך יעד */}
-            <div>
-              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1">
-                תאריך יעד להחזר (אופציונלי)
-              </label>
-              <input
-                type="date"
-                id="dueDate"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="block w-full py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-            
-            {/* הערות */}
-            <div>
-              <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-                הערות (אופציונלי)
-              </label>
-              <textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="הוסף הערות..."
-                className="block w-full py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500 min-h-[80px]"
-              />
-            </div>
-            
-            {/* האם שולם */}
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="isPaid"
-                checked={isPaid}
-                onChange={(e) => setIsPaid(e.target.checked)}
-                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded ml-2"
-              />
-              <label htmlFor="isPaid" className="text-sm font-medium text-gray-700">
-                {isDebt ? 'שילמתי את החוב' : 'קיבלתי את ההחזר'}
-              </label>
+                חוב (אני חייב)
+              </button>
+              
+              <button
+                type="button"
+                className={`flex-1 py-2 ${
+                  !formData.isDebt
+                    ? 'bg-green-100 text-green-800 border-green-300'
+                    : 'bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200'
+                }`}
+                onClick={() => handleChange('isDebt', false)}
+              >
+                הלוואה (חייבים לי)
+              </button>
             </div>
           </div>
           
-          <div className="p-4 border-t flex justify-end">
+          {/* שם האדם */}
+          <div>
+            <label htmlFor="personName" className="block text-sm font-medium text-gray-700 mb-1">
+              שם {formData.isDebt ? 'הנושה' : 'הלווה'}:
+            </label>
+            <input
+              type="text"
+              id="personName"
+              value={formData.personName}
+              onChange={(e) => handleChange('personName', e.target.value)}
+              className="w-full p-2 border rounded-md"
+              required
+            />
+          </div>
+          
+          {/* סכום */}
+          <div>
+            <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
+              סכום:
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                id="amount"
+                value={formData.amount}
+                onChange={(e) => handleChange('amount', Number(e.target.value))}
+                className="w-full p-2 border rounded-md pl-8"
+                min="0"
+                step="0.01"
+                required
+              />
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2">₪</span>
+            </div>
+          </div>
+          
+          {/* תאריך יעד */}
+          <div>
+            <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1">
+              תאריך יעד לתשלום (לא חובה):
+            </label>
+            <input
+              type="date"
+              id="dueDate"
+              value={formData.dueDate ? new Date(formData.dueDate).toISOString().split('T')[0] : ''}
+              onChange={(e) => {
+                const value = e.target.value ? new Date(e.target.value) : undefined;
+                handleChange('dueDate', value);
+              }}
+              className="w-full p-2 border rounded-md"
+            />
+          </div>
+          
+          {/* שיטת תשלום */}
+          <div>
+            <label htmlFor="paymentMethodId" className="block text-sm font-medium text-gray-700 mb-1">
+              אמצעי תשלום (לא חובה):
+            </label>
+            <select
+              id="paymentMethodId"
+              value={formData.paymentMethodId || ''}
+              onChange={(e) => handleChange('paymentMethodId', e.target.value || undefined)}
+              className="w-full p-2 border rounded-md"
+            >
+              <option value="">-- ללא אמצעי תשלום --</option>
+              {paymentMethods.map((method) => (
+                <option key={method.id} value={method.id}>
+                  {method.icon} {method.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {/* הערות */}
+          <div>
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
+              הערות (לא חובה):
+            </label>
+            <textarea
+              id="notes"
+              value={formData.notes || ''}
+              onChange={(e) => handleChange('notes', e.target.value)}
+              className="w-full p-2 border rounded-md"
+              rows={3}
+            />
+          </div>
+          
+          {/* סטטוס תשלום */}
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="isPaid"
+              checked={formData.isPaid}
+              onChange={(e) => handleChange('isPaid', e.target.checked)}
+              className="h-4 w-4 text-primary-600 border-gray-300 rounded"
+            />
+            <label htmlFor="isPaid" className="mr-2 block text-sm text-gray-700">
+              שולם
+            </label>
+          </div>
+          
+          {/* כפתורי פעולה */}
+          <div className="flex justify-end space-x-2 space-x-reverse pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 mr-2 text-gray-600 hover:bg-gray-100 rounded-md"
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
             >
               ביטול
             </button>
+            
             <button
               type="submit"
-              disabled={!isFormValid}
-              className={`px-4 py-2 rounded-md flex items-center ${
-                isFormValid 
-                  ? 'bg-primary-500 text-white hover:bg-primary-600' 
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
+              className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+              disabled={!formData.personName || formData.amount <= 0}
             >
-              <FiCheck className="ml-1" />
-              שמור
+              {debtLoan ? 'עדכון' : 'הוספה'}
             </button>
           </div>
         </form>
