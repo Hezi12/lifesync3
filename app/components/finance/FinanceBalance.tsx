@@ -44,9 +44,6 @@ const FinanceBalance = () => {
     const dates = getLast30Days();
     const history: {date: string, balance: number}[] = [];
     
-    // בדיקה אם יש עסקאות
-    const hasTransactions = transactions.length > 0;
-    
     // חישוב סכום כולל של אמצעי תשלום
     const totalPaymentMethods = paymentMethods.reduce((sum, method) => sum + method.currentBalance, 0);
     
@@ -62,7 +59,15 @@ const FinanceBalance = () => {
     // המצב הנוכחי - סכום אמצעי תשלום + הלוואות פתוחות - חובות פתוחים
     const currentBalance = totalPaymentMethods - openDebtsTotal + openLoansTotal;
     
-    // אם אין עסקאות, פשוט מציג קו ישר עם המצב הנוכחי
+    // בדיקה אם יש עסקאות בכלל בשיטת תשלום מוגדרת
+    const validTransactions = transactions.filter(t => {
+      // בדיקה אם שיטת התשלום קיימת
+      return paymentMethods.some(m => m.id === t.paymentMethodId);
+    });
+    
+    const hasTransactions = validTransactions.length > 0;
+    
+    // אם אין עסקאות תקפות או יש בעיה אחרת, פשוט מציג קו ישר עם המצב הנוכחי
     if (!hasTransactions) {
       // מילוי ההיסטוריה עם הערך הנוכחי לכל 30 הימים
       dates.forEach(date => {
@@ -80,71 +85,79 @@ const FinanceBalance = () => {
       return;
     }
     
-    // אם יש עסקאות, ממשיך בחישוב המקורי
-    // חישוב היתרה ההתחלתית (סכום כל היתרות ההתחלתיות)
-    const initialTotal = paymentMethods.reduce((sum, method) => sum + method.initialBalance, 0);
+    // אם יש עסקאות, ממשיך בחישוב המותאם
+    // חישוב היתרה ההתחלתית (מתחילים מהמצב הנוכחי ואז מחסירים את ההשפעה של העסקאות)
+    let initialBalance = currentBalance;
     
     // מיון העסקאות לפי תאריך (מהישן לחדש)
-    const sortedTransactions = [...transactions].sort((a, b) => a.date.getTime() - b.date.getTime());
+    const sortedTransactions = [...validTransactions].sort((a, b) => a.date.getTime() - b.date.getTime());
     
-    // חישוב המאזן לכל אחד מ-30 הימים האחרונים
-    let runningBalance = initialTotal;
+    // סינון עסקאות מהחודש האחרון בלבד
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
-    // יצירת מפה של תאריכים כמחרוזות לקלות השוואה
-    const transactionDateMap: { [key: string]: number } = {};
+    const recentTransactions = sortedTransactions.filter(t => 
+      t.date.getTime() >= thirtyDaysAgo.getTime()
+    );
     
-    // קיבוץ השפעות העסקאות לפי תאריך
-    sortedTransactions.forEach(transaction => {
+    // חישוב השינוי הכולל מעסקאות לאורך 30 יום
+    const totalTransactionChange = recentTransactions.reduce((sum, t) => {
+      return sum + (t.type === 'income' ? t.amount : -t.amount);
+    }, 0);
+    
+    // החסרת השינוי מהמצב הנוכחי לקבלת המצב בתחילת התקופה
+    initialBalance -= totalTransactionChange;
+    
+    // יצירת מפה של תאריכים וההשפעה המצטברת של עסקאות
+    const transactionImpactByDate: { [key: string]: number } = {};
+    
+    // חישוב ההשפעה המצטברת לפי תאריך
+    recentTransactions.forEach(transaction => {
       const dateStr = transaction.date.toISOString().split('T')[0];
       const amount = transaction.type === 'income' ? transaction.amount : -transaction.amount;
       
-      if (transactionDateMap[dateStr]) {
-        transactionDateMap[dateStr] += amount;
+      if (transactionImpactByDate[dateStr]) {
+        transactionImpactByDate[dateStr] += amount;
       } else {
-        transactionDateMap[dateStr] = amount;
-      }
-    });
-    
-    // חישוב השפעת החובות וההלוואות
-    let debtLoansImpact = 0;
-    
-    // הוספת השפעת ההלוואות (מוסיפות להון) וחובות (מקטינות את ההון)
-    debtLoans.forEach(debtLoan => {
-      if (!debtLoan.isPaid) { // רק חובות/הלוואות פתוחים
-        // חובות (אני חייב) מקטינות את ההון, הלוואות (חייבים לי) מגדילות את ההון
-        debtLoansImpact += debtLoan.isDebt ? -debtLoan.amount : debtLoan.amount;
+        transactionImpactByDate[dateStr] = amount;
       }
     });
     
     // בניית היסטוריית המאזן
+    let runningBalance = initialBalance;
     dates.forEach(date => {
       // בדיקה אם יש עסקאות ביום זה
-      for (const [transactionDate, impact] of Object.entries(transactionDateMap)) {
+      for (const [transactionDate, impact] of Object.entries(transactionImpactByDate)) {
         if (new Date(transactionDate) <= new Date(date)) {
           runningBalance += impact;
           // מחיקת העסקאות שכבר נכללו כדי לא לספור אותן שוב
-          delete transactionDateMap[transactionDate];
+          delete transactionImpactByDate[transactionDate];
         }
       }
       
-      // הוספת השפעת החובות וההלוואות לכל נקודת זמן בהיסטוריה
-      const totalBalanceWithDebtLoans = runningBalance + debtLoansImpact;
-      
       history.push({
         date,
-        balance: totalBalanceWithDebtLoans
+        balance: runningBalance
       });
     });
     
     setBalanceHistory(history);
     
-    // חישוב שינוי
+    // חישוב שינוי חודשי לפי העסקאות מהחודש האחרון בלבד
     if (history.length >= 2) {
-      const lastMonth = history[0].balance;
-      const current = history[history.length - 1].balance;
-      const change = current - lastMonth;
+      // השינוי הוא ההפרש בין הערך הראשון לאחרון בהיסטוריה
+      const firstDay = history[0].balance;
+      const lastDay = history[history.length - 1].balance;
+      const change = lastDay - firstDay;
+      
       setMonthlyChange(change);
-      setMonthlyChangePercent(totalBalance ? Math.round((change / totalBalance) * 100) : 0);
+      // חישוב אחוז השינוי ביחס למצב הנוכחי
+      const percentChange = lastDay !== 0 ? Math.round((change / lastDay) * 100) : 0;
+      setMonthlyChangePercent(percentChange);
+    } else {
+      // אם אין מספיק נתונים בהיסטוריה
+      setMonthlyChange(0);
+      setMonthlyChangePercent(0);
     }
   };
   
