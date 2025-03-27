@@ -46,8 +46,6 @@ interface FinanceContextType {
   getPaymentMethodById: (id: string) => PaymentMethod | undefined;
   getCategoryById: (id: string) => FinancialCategory | undefined;
   recalculateBalances: () => void;
-  exportAllData: () => Promise<void>;
-  importAllData: (file: File) => Promise<void>;
 }
 
 // ערך ברירת מחדל לקונטקסט
@@ -76,9 +74,7 @@ const defaultContextValue: FinanceContextType = {
   deleteCategory: async () => {},
   getPaymentMethodById: () => undefined,
   getCategoryById: () => undefined,
-  recalculateBalances: () => {},
-  exportAllData: async () => {},
-  importAllData: async () => {}
+  recalculateBalances: () => {}
 };
 
 // יצירת הקונטקסט
@@ -1080,109 +1076,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // פונקציה לייצוא כל הנתונים
-  const exportAllData = async () => {
-    try {
-      // איסוף כל הנתונים
-      const data = {
-        paymentMethods,
-        transactions,
-        debtLoans,
-        categories,
-        exportDate: new Date().toISOString(),
-        version: '1.0'
-      };
-
-      // המרה לקובץ JSON
-      const jsonString = JSON.stringify(data, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      
-      // יצירת קישור להורדה
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `lifesync_backup_${new Date().toISOString().split('T')[0]}.json`;
-      
-      // הורדת הקובץ
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      console.log('נתונים יוצאו בהצלחה');
-    } catch (error) {
-      console.error('שגיאה בייצוא נתונים:', error);
-      throw new Error('אירעה שגיאה בייצוא הנתונים');
-    }
-  };
-
-  // פונקציה לייבוא כל הנתונים
-  const importAllData = async (file: File) => {
-    try {
-      // קריאת הקובץ
-      const text = await file.text();
-      const data = JSON.parse(text);
-
-      // בדיקת תקינות הקובץ
-      if (!data.version || !data.paymentMethods || !data.transactions || !data.categories) {
-        throw new Error('קובץ לא תקין');
-      }
-
-      // מחיקת כל הנתונים הקיימים
-      // מחיקת שיטות תשלום
-      for (const method of paymentMethods) {
-        await deletePaymentMethod(method.id);
-      }
-
-      // מחיקת עסקאות
-      for (const transaction of transactions) {
-        await deleteTransaction(transaction.id);
-      }
-
-      // מחיקת קטגוריות
-      for (const category of categories) {
-        await deleteCategory(category.id);
-      }
-
-      // מחיקת חובות והלוואות
-      for (const debtLoan of debtLoans) {
-        await deleteDebtLoan(debtLoan.id);
-      }
-
-      // הוספת הנתונים החדשים
-      // הוספת קטגוריות
-      for (const category of data.categories) {
-        await addCategory(category);
-      }
-
-      // הוספת שיטות תשלום
-      for (const method of data.paymentMethods) {
-        await addPaymentMethod(method);
-      }
-
-      // הוספת עסקאות
-      for (const transaction of data.transactions) {
-        await addTransaction({
-          ...transaction,
-          date: new Date(transaction.date)
-        });
-      }
-
-      // הוספת חובות והלוואות
-      for (const debtLoan of data.debtLoans) {
-        await addDebtLoan({
-          ...debtLoan,
-          dueDate: debtLoan.dueDate ? new Date(debtLoan.dueDate) : null
-        });
-      }
-
-      console.log('נתונים יובאו בהצלחה');
-    } catch (error) {
-      console.error('שגיאה בייבוא נתונים:', error);
-      throw new Error('אירעה שגיאה בייבוא הנתונים');
-    }
-  };
-
   // עדכון ערך הקונטקסט עם הפונקציות החדשות
   const value: FinanceContextType = {
     paymentMethods,
@@ -1209,9 +1102,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     deleteCategory,
     getPaymentMethodById,
     getCategoryById,
-    recalculateBalances,
-    exportAllData,
-    importAllData
+    recalculateBalances
   };
 
   // עדכון סנכרון עם Firebase כשנטענים נתונים מקומיים במצב מחובר
