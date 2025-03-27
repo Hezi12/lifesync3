@@ -405,6 +405,13 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       // קבלת נתונים מ-localStorage
       const localPaymentMethods = JSON.parse(localStorage.getItem('paymentMethods') || '[]') as PaymentMethod[];
 
+      // אם אין נתונים ב-Firebase, נמחק את הנתונים המקומיים
+      if (firebasePaymentMethods.length === 0) {
+        setPaymentMethods([]);
+        localStorage.removeItem('paymentMethods');
+        return;
+      }
+
       // מיזוג נתונים חכם
       const mergedPaymentMethods = firebasePaymentMethods.map(fbMethod => {
         const localMethod = localPaymentMethods.find(lm => lm.id === fbMethod.id);
@@ -692,6 +699,13 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
   const deletePaymentMethod = async (id: string) => {
     try {
+      // מחיקת כל העסקאות הקשורות לשיטת התשלום
+      const relatedTransactions = transactions.filter(t => t.paymentMethodId === id);
+      for (const transaction of relatedTransactions) {
+        await deleteTransaction(transaction.id);
+      }
+
+      // מחיקת שיטת התשלום
       const newMethods = paymentMethods.filter(m => m.id !== id);
       setPaymentMethods(newMethods);
       localStorage.setItem('paymentMethods', JSON.stringify(newMethods));
