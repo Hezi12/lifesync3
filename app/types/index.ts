@@ -98,6 +98,7 @@ export interface PaymentMethod {
   icon: string;
   color: string;
   keywords?: string[]; // מילות מפתח לזיהוי אוטומטי של אמצעי תשלום
+  updatedAt?: Date; // תאריך עדכון אחרון
 }
 
 // קטגוריה פיננסית
