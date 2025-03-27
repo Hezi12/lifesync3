@@ -12,7 +12,8 @@ import {
   setDoc, 
   query, 
   where, 
-  onSnapshot 
+  onSnapshot,
+  writeBatch
 } from 'firebase/firestore';
 import { db, auth } from '../firebase/config';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -46,6 +47,8 @@ interface FinanceContextType {
   getPaymentMethodById: (id: string) => PaymentMethod | undefined;
   getCategoryById: (id: string) => FinancialCategory | undefined;
   recalculateBalances: () => void;
+  exportData: () => Promise<void>;
+  importData: (file: File) => Promise<void>;
 }
 
 // ערך ברירת מחדל לקונטקסט
@@ -74,7 +77,9 @@ const defaultContextValue: FinanceContextType = {
   deleteCategory: async () => {},
   getPaymentMethodById: () => undefined,
   getCategoryById: () => undefined,
-  recalculateBalances: () => {}
+  recalculateBalances: () => {},
+  exportData: async () => {},
+  importData: async () => {}
 };
 
 // יצירת הקונטקסט
@@ -1076,6 +1081,143 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // פונקציה לייצוא נתונים
+  const exportData = async () => {
+    try {
+      // איסוף כל הנתונים
+      const data = {
+        paymentMethods,
+        transactions,
+        debtLoans,
+        categories,
+        exportDate: new Date().toISOString(),
+        version: '1.0'
+      };
+
+      // המרה לקובץ JSON
+      const jsonString = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      
+      // יצירת קישור להורדה
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `lifesync_backup_${new Date().toISOString().split('T')[0]}.json`;
+      
+      // הורדת הקובץ
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('שגיאה בייצוא נתונים:', error);
+      throw new Error('אירעה שגיאה בייצוא הנתונים');
+    }
+  };
+
+  // פונקציה לייבוא נתונים
+  const importData = async (file: File) => {
+    try {
+      // קריאת הקובץ
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      // בדיקת תקינות הקובץ
+      if (!data.version || !data.paymentMethods || !data.transactions || !data.categories) {
+        throw new Error('קובץ לא תקין: חסרים נתונים חיוניים');
+      }
+
+      // מחיקת כל הנתונים הקיימים
+      if (user && isOnline) {
+        // מחיקת נתונים מ-Firebase
+        const batch = writeBatch(db);
+        
+        // מחיקת שיטות תשלום
+        const paymentMethodsRef = collection(db, `users/${user.uid}/paymentMethods`);
+        const paymentMethodsSnapshot = await getDocs(paymentMethodsRef);
+        paymentMethodsSnapshot.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+
+        // מחיקת עסקאות
+        const transactionsRef = collection(db, `users/${user.uid}/transactions`);
+        const transactionsSnapshot = await getDocs(transactionsRef);
+        transactionsSnapshot.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+
+        // מחיקת קטגוריות
+        const categoriesRef = collection(db, `users/${user.uid}/categories`);
+        const categoriesSnapshot = await getDocs(categoriesRef);
+        categoriesSnapshot.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+
+        // מחיקת חובות והלוואות
+        const debtLoansRef = collection(db, `users/${user.uid}/debtLoans`);
+        const debtLoansSnapshot = await getDocs(debtLoansRef);
+        debtLoansSnapshot.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+
+        await batch.commit();
+      }
+
+      // ניקוי נתונים מקומיים
+      localStorage.removeItem('paymentMethods');
+      localStorage.removeItem('transactions');
+      localStorage.removeItem('financialCategories');
+      localStorage.removeItem('debtLoans');
+
+      // עדכון הנתונים המקומיים
+      setPaymentMethods(data.paymentMethods);
+      setTransactions(data.transactions);
+      setCategories(data.categories);
+      setDebtLoans(data.debtLoans || []);
+
+      // שמירת הנתונים המקומיים
+      localStorage.setItem('paymentMethods', JSON.stringify(data.paymentMethods));
+      localStorage.setItem('transactions', JSON.stringify(data.transactions));
+      localStorage.setItem('financialCategories', JSON.stringify(data.categories));
+      localStorage.setItem('debtLoans', JSON.stringify(data.debtLoans || []));
+
+      // סנכרון עם Firebase אם המשתמש מחובר
+      if (user && isOnline) {
+        // הוספת שיטות תשלום
+        for (const method of data.paymentMethods) {
+          const methodRef = doc(db, `users/${user.uid}/paymentMethods/${method.id}`);
+          await setDoc(methodRef, method);
+        }
+
+        // הוספת עסקאות
+        for (const transaction of data.transactions) {
+          const transactionRef = doc(db, `users/${user.uid}/transactions/${transaction.id}`);
+          await setDoc(transactionRef, transaction);
+        }
+
+        // הוספת קטגוריות
+        for (const category of data.categories) {
+          const categoryRef = doc(db, `users/${user.uid}/categories/${category.id}`);
+          await setDoc(categoryRef, category);
+        }
+
+        // הוספת חובות והלוואות
+        if (data.debtLoans) {
+          for (const debtLoan of data.debtLoans) {
+            const debtLoanRef = doc(db, `users/${user.uid}/debtLoans/${debtLoan.id}`);
+            await setDoc(debtLoanRef, debtLoan);
+          }
+        }
+      }
+
+      // חישוב מחדש של היתרות
+      recalculateBalances();
+    } catch (error) {
+      console.error('שגיאה בייבוא נתונים:', error);
+      throw new Error('אירעה שגיאה בייבוא הנתונים');
+    }
+  };
+
   // ערך הקונטקסט
   const value: FinanceContextType = {
     paymentMethods,
@@ -1102,7 +1244,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     deleteCategory,
     getPaymentMethodById,
     getCategoryById,
-    recalculateBalances
+    recalculateBalances,
+    exportData,
+    importData
   };
 
   // עדכון סנכרון עם Firebase כשנטענים נתונים מקומיים במצב מחובר
