@@ -12,8 +12,7 @@ import {
   setDoc, 
   query, 
   where, 
-  onSnapshot,
-  writeBatch
+  onSnapshot 
 } from 'firebase/firestore';
 import { db, auth } from '../firebase/config';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -47,8 +46,8 @@ interface FinanceContextType {
   getPaymentMethodById: (id: string) => PaymentMethod | undefined;
   getCategoryById: (id: string) => FinancialCategory | undefined;
   recalculateBalances: () => void;
-  exportData: () => Promise<void>;
-  importData: (file: File) => Promise<void>;
+  exportAllData: () => Promise<void>;
+  importAllData: (file: File) => Promise<void>;
 }
 
 // ערך ברירת מחדל לקונטקסט
@@ -78,8 +77,8 @@ const defaultContextValue: FinanceContextType = {
   getPaymentMethodById: () => undefined,
   getCategoryById: () => undefined,
   recalculateBalances: () => {},
-  exportData: async () => {},
-  importData: async () => {}
+  exportAllData: async () => {},
+  importAllData: async () => {}
 };
 
 // יצירת הקונטקסט
@@ -1081,8 +1080,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // פונקציה לייצוא נתונים
-  const exportData = async () => {
+  // פונקציה לייצוא כל הנתונים
+  const exportAllData = async () => {
     try {
       // איסוף כל הנתונים
       const data = {
@@ -1109,14 +1108,16 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+
+      console.log('נתונים יוצאו בהצלחה');
     } catch (error) {
       console.error('שגיאה בייצוא נתונים:', error);
       throw new Error('אירעה שגיאה בייצוא הנתונים');
     }
   };
 
-  // פונקציה לייבוא נתונים
-  const importData = async (file: File) => {
+  // פונקציה לייבוא כל הנתונים
+  const importAllData = async (file: File) => {
     try {
       // קריאת הקובץ
       const text = await file.text();
@@ -1124,101 +1125,65 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
       // בדיקת תקינות הקובץ
       if (!data.version || !data.paymentMethods || !data.transactions || !data.categories) {
-        throw new Error('קובץ לא תקין: חסרים נתונים חיוניים');
+        throw new Error('קובץ לא תקין');
       }
 
       // מחיקת כל הנתונים הקיימים
-      if (user && isOnline) {
-        // מחיקת נתונים מ-Firebase
-        const batch = writeBatch(db);
-        
-        // מחיקת שיטות תשלום
-        const paymentMethodsRef = collection(db, `users/${user.uid}/paymentMethods`);
-        const paymentMethodsSnapshot = await getDocs(paymentMethodsRef);
-        paymentMethodsSnapshot.forEach(doc => {
-          batch.delete(doc.ref);
-        });
-
-        // מחיקת עסקאות
-        const transactionsRef = collection(db, `users/${user.uid}/transactions`);
-        const transactionsSnapshot = await getDocs(transactionsRef);
-        transactionsSnapshot.forEach(doc => {
-          batch.delete(doc.ref);
-        });
-
-        // מחיקת קטגוריות
-        const categoriesRef = collection(db, `users/${user.uid}/categories`);
-        const categoriesSnapshot = await getDocs(categoriesRef);
-        categoriesSnapshot.forEach(doc => {
-          batch.delete(doc.ref);
-        });
-
-        // מחיקת חובות והלוואות
-        const debtLoansRef = collection(db, `users/${user.uid}/debtLoans`);
-        const debtLoansSnapshot = await getDocs(debtLoansRef);
-        debtLoansSnapshot.forEach(doc => {
-          batch.delete(doc.ref);
-        });
-
-        await batch.commit();
+      // מחיקת שיטות תשלום
+      for (const method of paymentMethods) {
+        await deletePaymentMethod(method.id);
       }
 
-      // ניקוי נתונים מקומיים
-      localStorage.removeItem('paymentMethods');
-      localStorage.removeItem('transactions');
-      localStorage.removeItem('financialCategories');
-      localStorage.removeItem('debtLoans');
-
-      // עדכון הנתונים המקומיים
-      setPaymentMethods(data.paymentMethods);
-      setTransactions(data.transactions);
-      setCategories(data.categories);
-      setDebtLoans(data.debtLoans || []);
-
-      // שמירת הנתונים המקומיים
-      localStorage.setItem('paymentMethods', JSON.stringify(data.paymentMethods));
-      localStorage.setItem('transactions', JSON.stringify(data.transactions));
-      localStorage.setItem('financialCategories', JSON.stringify(data.categories));
-      localStorage.setItem('debtLoans', JSON.stringify(data.debtLoans || []));
-
-      // סנכרון עם Firebase אם המשתמש מחובר
-      if (user && isOnline) {
-        // הוספת שיטות תשלום
-        for (const method of data.paymentMethods) {
-          const methodRef = doc(db, `users/${user.uid}/paymentMethods/${method.id}`);
-          await setDoc(methodRef, method);
-        }
-
-        // הוספת עסקאות
-        for (const transaction of data.transactions) {
-          const transactionRef = doc(db, `users/${user.uid}/transactions/${transaction.id}`);
-          await setDoc(transactionRef, transaction);
-        }
-
-        // הוספת קטגוריות
-        for (const category of data.categories) {
-          const categoryRef = doc(db, `users/${user.uid}/categories/${category.id}`);
-          await setDoc(categoryRef, category);
-        }
-
-        // הוספת חובות והלוואות
-        if (data.debtLoans) {
-          for (const debtLoan of data.debtLoans) {
-            const debtLoanRef = doc(db, `users/${user.uid}/debtLoans/${debtLoan.id}`);
-            await setDoc(debtLoanRef, debtLoan);
-          }
-        }
+      // מחיקת עסקאות
+      for (const transaction of transactions) {
+        await deleteTransaction(transaction.id);
       }
 
-      // חישוב מחדש של היתרות
-      recalculateBalances();
+      // מחיקת קטגוריות
+      for (const category of categories) {
+        await deleteCategory(category.id);
+      }
+
+      // מחיקת חובות והלוואות
+      for (const debtLoan of debtLoans) {
+        await deleteDebtLoan(debtLoan.id);
+      }
+
+      // הוספת הנתונים החדשים
+      // הוספת קטגוריות
+      for (const category of data.categories) {
+        await addCategory(category);
+      }
+
+      // הוספת שיטות תשלום
+      for (const method of data.paymentMethods) {
+        await addPaymentMethod(method);
+      }
+
+      // הוספת עסקאות
+      for (const transaction of data.transactions) {
+        await addTransaction({
+          ...transaction,
+          date: new Date(transaction.date)
+        });
+      }
+
+      // הוספת חובות והלוואות
+      for (const debtLoan of data.debtLoans) {
+        await addDebtLoan({
+          ...debtLoan,
+          dueDate: debtLoan.dueDate ? new Date(debtLoan.dueDate) : null
+        });
+      }
+
+      console.log('נתונים יובאו בהצלחה');
     } catch (error) {
       console.error('שגיאה בייבוא נתונים:', error);
       throw new Error('אירעה שגיאה בייבוא הנתונים');
     }
   };
 
-  // ערך הקונטקסט
+  // עדכון ערך הקונטקסט עם הפונקציות החדשות
   const value: FinanceContextType = {
     paymentMethods,
     transactions,
@@ -1245,8 +1210,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     getPaymentMethodById,
     getCategoryById,
     recalculateBalances,
-    exportData,
-    importData
+    exportAllData,
+    importAllData
   };
 
   // עדכון סנכרון עם Firebase כשנטענים נתונים מקומיים במצב מחובר

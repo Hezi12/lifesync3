@@ -1,14 +1,17 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from './context/AuthContext';
 import { FiCalendar, FiFileText, FiDollarSign, FiHeart } from 'react-icons/fi';
 import Link from 'next/link';
+import { useFinanceContext } from './context/FinanceContext';
 
 export default function HomePage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const { exportAllData, importAllData } = useFinanceContext();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // אם המשתמש לא מחובר, ניתוב לדף התחברות
@@ -32,6 +35,18 @@ export default function HomePage() {
   if (!user) {
     return null;
   }
+
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      try {
+        await importAllData(file);
+        alert('הנתונים יובאו בהצלחה');
+      } catch (error) {
+        alert('אירעה שגיאה בייבוא הנתונים');
+      }
+    }
+  };
 
   return (
     <div className="container mx-auto p-4">
@@ -77,6 +92,31 @@ export default function HomePage() {
             <p className="text-gray-600">עקוב אחר הבריאות והכושר שלך</p>
           </div>
         </Link>
+      </div>
+      
+      {/* כפתורי ייבוא/ייצוא */}
+      <div className="fixed bottom-4 right-4 flex gap-2">
+        <button
+          onClick={exportAllData}
+          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg"
+        >
+          ייצא נתונים
+        </button>
+        
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleImport}
+          accept=".json"
+          className="hidden"
+        />
+        
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg"
+        >
+          ייבא נתונים
+        </button>
       </div>
     </div>
   );
