@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { useFinanceContext } from '@/app/context/FinanceContext';
 
 export default function FinanceHeader() {
-  const { exportData, importData } = useFinanceContext();
+  const { exportData, importData, isOnline, pendingChanges, totalBalance } = useFinanceContext();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = async () => {
@@ -34,7 +34,21 @@ export default function FinanceHeader() {
   return (
     <div className="flex justify-between items-center mb-6">
       <h1 className="text-2xl font-bold">ניהול פיננסי</h1>
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
+        {!isOnline && (
+          <div className="bg-amber-100 text-amber-800 px-3 py-1 rounded-md flex items-center text-sm">
+            <span className="ml-1">מצב לא מקוון</span>
+            <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></div>
+          </div>
+        )}
+        {pendingChanges && (
+          <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-md flex items-center text-sm">
+            <span>שינויים בהמתנה לסנכרון</span>
+          </div>
+        )}
+        <div className="bg-primary-100 text-primary-800 px-3 py-1 rounded-md">
+          <span className="font-bold">{totalBalance.toLocaleString()} ₪</span>
+        </div>
         <input
           type="file"
           ref={fileInputRef}
