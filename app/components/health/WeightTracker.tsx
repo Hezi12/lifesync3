@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { FiPlusCircle, FiEdit, FiTrash2, FiTarget } from 'react-icons/fi';
 import { WeightRecord, WeightGoal } from '../../types';
 import WeightChart from './WeightChart';
+import { motion } from 'framer-motion';
+import Modal from '../Modal';
 
 const WeightTracker = () => {
   const [weightRecords, setWeightRecords] = useState<WeightRecord[]>([]);
@@ -371,431 +373,383 @@ const WeightTracker = () => {
   const bmiCategory = getBMICategory(bmi);
   
   return (
-    <div className="space-y-6">
-      {/* כרטיס סיכום */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card bg-blue-50">
-          <div className="flex items-center">
-            <div className="bg-blue-100 p-3 rounded-full ml-3">
-              <FiTarget className="text-blue-600 text-xl" />
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+        {/* סיכום משקל נוכחי */}
+        <motion.div 
+          className="col-span-1 md:col-span-4 bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <div className="absolute top-0 right-0 left-0 h-0.5 bg-gradient-to-r from-blue-200 via-indigo-200 to-purple-200"></div>
+          
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-bold text-gray-800 flex items-center">
+              <span className="w-9 h-9 flex items-center justify-center bg-blue-500 rounded-full mr-4 text-white shadow-sm">
+                <FiTarget className="text-lg" />
+              </span>
+              מעקב משקל
+            </h3>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsAddingRecord(true)}
+              className="w-9 h-9 flex items-center justify-center bg-blue-500 rounded-full text-white shadow-sm hover:bg-blue-600 transition-colors"
+            >
+              <FiPlusCircle className="text-lg" />
+            </motion.button>
+          </div>
+
+          {weightRecords.length > 0 && (
+            <div className="mb-4">
+              <div className="text-3xl font-bold text-gray-800 flex items-baseline">
+                <motion.span
+                  key={weightRecords[weightRecords.length - 1].weight}
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  {weightRecords[weightRecords.length - 1].weight}
+                </motion.span>
+                <span className="text-lg text-gray-500 mr-1">ק"ג</span>
+              </div>
+              
+              <div className="text-sm text-gray-500 mt-1">
+                עדכון אחרון: {weightRecords[weightRecords.length - 1].date.toLocaleDateString('he-IL')}
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">משקל נוכחי</h3>
-              <p className="text-2xl font-bold text-blue-600">{latestWeight} ק"ג</p>
+          )}
+
+          {weightGoal && (
+            <motion.div 
+              className="bg-gray-50 rounded-lg p-3 border border-gray-200 shadow-sm"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-gray-700">יעד נוכחי:</span>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={deleteWeightGoal}
+                  className="text-red-500 hover:text-red-600 transition-colors"
+                >
+                  <FiTrash2 className="text-sm" />
+                </motion.button>
+              </div>
+              
+              <div className="flex justify-between items-center text-sm">
+                <span>{weightGoal.targetWeight} ק"ג</span>
+                <span className="text-gray-500">
+                  עד {weightGoal.targetDate.toLocaleDateString('he-IL')}
+                </span>
+              </div>
+              
+              {calculateGoalProgress().daysLeft > 0 && (
+                <div className="mt-2">
+                  <div className="flex justify-between text-xs text-gray-600 mb-1">
+                    <span>התקדמות:</span>
+                    <span>{Math.round(calculateGoalProgress().current)}%</span>
+                  </div>
+                  <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full bg-green-500 rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${calculateGoalProgress().current}%` }}
+                      transition={{ duration: 1 }}
+                    />
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {!weightGoal && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setIsSettingGoal(true)}
+              className="w-full p-3 rounded-lg border border-blue-200 text-blue-600 text-sm font-medium hover:bg-blue-50 transition-colors flex items-center justify-center"
+            >
+              <FiTarget className="mr-4" />
+              הגדר יעד משקל
+            </motion.button>
+          )}
+        </motion.div>
+
+        {/* BMI ונתונים נוספים */}
+        <motion.div 
+          className="col-span-1 md:col-span-4 bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+        >
+          <div className="absolute top-0 right-0 left-0 h-0.5 bg-gradient-to-r from-blue-200 via-indigo-200 to-purple-200"></div>
+          
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+            <span className="w-9 h-9 flex items-center justify-center bg-purple-500 rounded-full mr-4 text-white shadow-sm">
+              <FiTarget className="text-lg" />
+            </span>
+            מדדי בריאות
+          </h3>
+
+          {weightRecords.length > 0 && (
+            <div className="space-y-4">
+              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm font-medium text-gray-700">BMI נוכחי:</span>
+                  <span className={`text-sm font-bold ${getBMICategory(calculateBMI(weightRecords[weightRecords.length - 1].weight)).color}`}>
+                    {calculateBMI(weightRecords[weightRecords.length - 1].weight).toFixed(1)}
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  {getBMICategory(calculateBMI(weightRecords[weightRecords.length - 1].weight)).text}
+                </div>
+              </div>
+
+              {weightRecords.length > 1 && (
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm font-medium text-gray-700">שינוי מהמדידה הקודמת:</span>
+                    <span className={`text-sm font-bold ${
+                      weightRecords[weightRecords.length - 1].weight - weightRecords[weightRecords.length - 2].weight > 0
+                        ? 'text-red-500'
+                        : weightRecords[weightRecords.length - 1].weight - weightRecords[weightRecords.length - 2].weight < 0
+                        ? 'text-green-600'
+                        : 'text-gray-600'
+                    }`}>
+                      {(weightRecords[weightRecords.length - 1].weight - weightRecords[weightRecords.length - 2].weight).toFixed(1)} ק"ג
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {new Date(weightRecords[weightRecords.length - 2].date).toLocaleDateString('he-IL')}
+                  </div>
+                </div>
+              )}
+
+              {weightGoal && calculateGoalProgress().daysLeft > 0 && (
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm font-medium text-gray-700">קצב נדרש ליעד:</span>
+                    <span className="text-sm font-bold text-blue-600">
+                      {calculateGoalProgress().daily.toFixed(2)} ק"ג ליום
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    נותרו {calculateGoalProgress().daysLeft} ימים
+                  </div>
+                </div>
+              )}
             </div>
+          )}
+        </motion.div>
+
+        {/* היסטוריית משקל */}
+        <motion.div 
+          className="col-span-1 md:col-span-4 bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+        >
+          <div className="absolute top-0 right-0 left-0 h-0.5 bg-gradient-to-r from-blue-200 via-indigo-200 to-purple-200"></div>
+          
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+            <span className="w-9 h-9 flex items-center justify-center bg-cyan-500 rounded-full mr-4 text-white shadow-sm">
+              <FiEdit className="text-lg" />
+            </span>
+            היסטוריה
+          </h3>
+
+          <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+            {weightRecords.length === 0 ? (
+              <div className="text-center py-3 text-gray-500 text-sm">
+                אין רשומות משקל
+              </div>
+            ) : (
+              [...weightRecords].reverse().map((record) => (
+                <motion.div
+                  key={record.id}
+                  initial={{ x: -10, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  whileHover={{ scale: 1.02, x: 3 }}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm"
+                >
+                  <div className="flex items-center">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center mr-4 bg-white border border-gray-200 shadow-sm text-gray-600">
+                      <span className="text-sm font-medium">{record.weight}</span>
+                    </div>
+                    <span className="text-sm text-gray-700">
+                      {record.date.toLocaleDateString('he-IL')}
+                    </span>
+                  </div>
+                  {!record.fromCalendar && (
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => deleteWeightRecord(record.id)}
+                      className="text-red-500 hover:text-red-600 transition-colors"
+                    >
+                      <FiTrash2 className="text-sm" />
+                    </motion.button>
+                  )}
+                </motion.div>
+              ))
+            )}
+          </div>
+        </motion.div>
+      </div>
+
+      {/* גרף משקל */}
+      <motion.div 
+        className="bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.3 }}
+      >
+        <div className="absolute top-0 right-0 left-0 h-0.5 bg-gradient-to-r from-blue-200 via-indigo-200 to-purple-200"></div>
+        
+        <h3 className="text-lg font-bold text-gray-800 mb-4">
+          מגמת משקל
+        </h3>
+        
+        <div className="h-[280px]">
+          <WeightChart weightRecords={weightRecords} weightGoal={weightGoal} />
+        </div>
+      </motion.div>
+
+      {/* מודל הוספת משקל */}
+      <Modal
+        isOpen={isAddingRecord}
+        onClose={() => setIsAddingRecord(false)}
+        title="הוספת מדידת משקל"
+      >
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="weight" className="block text-sm font-medium text-gray-700 mb-1">
+              משקל (ק"ג)
+            </label>
+            <input
+              type="number"
+              id="weight"
+              value={newWeight}
+              onChange={(e) => setNewWeight(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              placeholder="הכנס משקל"
+              step="0.1"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
+              תאריך
+            </label>
+            <input
+              type="date"
+              id="date"
+              value={newDate}
+              onChange={(e) => setNewDate(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+            />
+          </div>
+          
+          <div className="flex justify-end space-x-2 rtl:space-x-reverse">
+            <button
+              onClick={() => setIsAddingRecord(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              ביטול
+            </button>
+            <button
+              onClick={addWeightRecord}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
+              disabled={!newWeight}
+            >
+              הוסף
+            </button>
           </div>
         </div>
-        
-        <div className="card bg-green-50">
-          <h3 className="text-sm font-medium text-gray-500">מדד BMI</h3>
-          <p className="text-2xl font-bold text-green-600">{bmi.toFixed(1)}</p>
-          <p className={`text-sm ${bmiCategory.color}`}>{bmiCategory.text}</p>
-        </div>
-        
-        <div className="card bg-purple-50">
-          <h3 className="text-sm font-medium text-gray-500">יעד משקל</h3>
-          {weightGoal ? (
-            <>
-              <p className="text-2xl font-bold text-purple-600">{weightGoal.targetWeight} ק"ג</p>
-              <p className="text-sm text-gray-600">
-                נותרו {goalProgress.daysLeft} ימים ({goalProgress.required.toFixed(1)} ק"ג)
-              </p>
-            </>
-          ) : (
-            <p className="text-lg text-gray-500">לא הוגדר יעד</p>
-          )}
-        </div>
-      </div>
-      
-      {/* כרטיס גרף */}
-      <div className="card">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">מעקב משקל</h2>
+      </Modal>
+
+      {/* מודל הגדרת יעד */}
+      <Modal
+        isOpen={isSettingGoal}
+        onClose={() => setIsSettingGoal(false)}
+        title="הגדרת יעד משקל"
+      >
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="startWeight" className="block text-sm font-medium text-gray-700 mb-1">
+              משקל התחלתי (ק"ג)
+            </label>
+            <input
+              type="number"
+              id="startWeight"
+              value={startWeight}
+              onChange={(e) => setStartWeight(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              placeholder="הכנס משקל התחלתי"
+              step="0.1"
+            />
+          </div>
           
-          <div className="flex space-x-2 space-x-reverse">
+          <div>
+            <label htmlFor="targetWeight" className="block text-sm font-medium text-gray-700 mb-1">
+              משקל יעד (ק"ג)
+            </label>
+            <input
+              type="number"
+              id="targetWeight"
+              value={targetWeight}
+              onChange={(e) => setTargetWeight(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              placeholder="הכנס משקל יעד"
+              step="0.1"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
+              תאריך התחלה
+            </label>
+            <input
+              type="date"
+              id="startDate"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="targetDate" className="block text-sm font-medium text-gray-700 mb-1">
+              תאריך יעד
+            </label>
+            <input
+              type="date"
+              id="targetDate"
+              value={targetDate}
+              onChange={(e) => setTargetDate(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+            />
+          </div>
+          
+          <div className="flex justify-end space-x-2 rtl:space-x-reverse">
             <button
-              onClick={() => setIsAddingRecord(true)}
-              className="btn-primary text-sm flex items-center"
+              onClick={() => setIsSettingGoal(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <FiPlusCircle className="ml-1" />
-              הוסף משקל
+              ביטול
             </button>
-            
             <button
-              onClick={() => setIsSettingGoal(true)}
-              className="bg-purple-100 text-purple-700 hover:bg-purple-200 text-sm py-2 px-3 rounded-md flex items-center"
+              onClick={setNewWeightGoal}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
+              disabled={!startWeight || !targetWeight || !startDate || !targetDate}
             >
-              <FiTarget className="ml-1" />
               הגדר יעד
             </button>
           </div>
         </div>
-        
-        {/* גרף משקל */}
-        <div className="h-80">
-          <WeightChart 
-            weightRecords={weightRecords} 
-            weightGoal={weightGoal}
-          />
-        </div>
-      </div>
-      
-      {/* טופס הוספת משקל */}
-      {isAddingRecord && (
-        <div className="card">
-          <h3 className="text-lg font-semibold mb-4">הוספת רשומת משקל</h3>
-          
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="weight" className="block text-sm font-medium text-gray-700 mb-1">
-                  משקל (ק"ג)
-                </label>
-                <input
-                  type="number"
-                  id="weight"
-                  value={newWeight}
-                  onChange={(e) => setNewWeight(e.target.value)}
-                  step="0.1"
-                  min="30"
-                  max="250"
-                  className="block w-full py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
-                  תאריך
-                </label>
-                <input
-                  type="date"
-                  id="date"
-                  value={newDate}
-                  onChange={(e) => setNewDate(e.target.value)}
-                  max={new Date().toISOString().split('T')[0]}
-                  className="block w-full py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500"
-                />
-              </div>
-            </div>
-            
-            <div className="flex justify-end space-x-2 space-x-reverse">
-              <button
-                onClick={() => setIsAddingRecord(false)}
-                className="px-4 py-2 border text-gray-700 rounded-md hover:bg-gray-50"
-              >
-                ביטול
-              </button>
-              
-              <button
-                onClick={addWeightRecord}
-                disabled={!newWeight || isNaN(Number(newWeight)) || Number(newWeight) <= 0}
-                className={`px-4 py-2 rounded-md ${
-                  newWeight && !isNaN(Number(newWeight)) && Number(newWeight) > 0
-                    ? 'bg-primary-500 text-white hover:bg-primary-600'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                הוסף
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* טופס הגדרת יעד */}
-      {isSettingGoal && (
-        <div className="card">
-          <h3 className="text-lg font-semibold mb-4">הגדרת יעד משקל</h3>
-          
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="startWeight" className="block text-sm font-medium text-gray-700 mb-1">
-                  משקל התחלתי (ק"ג)
-                </label>
-                <input
-                  type="number"
-                  id="startWeight"
-                  value={startWeight}
-                  onChange={(e) => setStartWeight(e.target.value)}
-                  step="0.1"
-                  min="30"
-                  max="250"
-                  className="block w-full py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="targetWeight" className="block text-sm font-medium text-gray-700 mb-1">
-                  משקל יעד (ק"ג)
-                </label>
-                <input
-                  type="number"
-                  id="targetWeight"
-                  value={targetWeight}
-                  onChange={(e) => setTargetWeight(e.target.value)}
-                  step="0.1"
-                  min="30"
-                  max="250"
-                  className="block w-full py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
-                  תאריך התחלה
-                </label>
-                <input
-                  type="date"
-                  id="startDate"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="block w-full py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="targetDate" className="block text-sm font-medium text-gray-700 mb-1">
-                  תאריך יעד
-                </label>
-                <input
-                  type="date"
-                  id="targetDate"
-                  value={targetDate}
-                  onChange={(e) => setTargetDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="block w-full py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500"
-                />
-              </div>
-            </div>
-            
-            <div className="flex justify-end space-x-2 space-x-reverse">
-              <button
-                onClick={() => setIsSettingGoal(false)}
-                className="px-4 py-2 border text-gray-700 rounded-md hover:bg-gray-50"
-              >
-                ביטול
-              </button>
-              
-              <button
-                onClick={setNewWeightGoal}
-                disabled={
-                  !startWeight || 
-                  !targetWeight ||
-                  isNaN(Number(startWeight)) || 
-                  isNaN(Number(targetWeight)) ||
-                  Number(startWeight) <= 0 ||
-                  Number(targetWeight) <= 0 ||
-                  !startDate ||
-                  !targetDate
-                }
-                className={`px-4 py-2 rounded-md ${
-                  startWeight && 
-                  targetWeight &&
-                  !isNaN(Number(startWeight)) && 
-                  !isNaN(Number(targetWeight)) &&
-                  Number(startWeight) > 0 &&
-                  Number(targetWeight) > 0 &&
-                  startDate &&
-                  targetDate
-                    ? 'bg-primary-500 text-white hover:bg-primary-600'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                שמור יעד
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* רשימת רשומות משקל */}
-      <div className="card">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">היסטוריית משקל</h3>
-          
-          <div className="flex space-x-2 space-x-reverse">
-            <button 
-              onClick={() => setIsAddingRecord(true)} 
-              className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
-            >
-              הוסף רשומת משקל
-            </button>
-            <button 
-              onClick={syncWeightFromCalendar} 
-              className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded flex items-center"
-              disabled={isSyncingCalendar}
-            >
-              {isSyncingCalendar ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  מסנכרן...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                  </svg>
-                  סנכרן עם לוח שנה
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-        
-        <div className="mb-4 p-3 bg-blue-50 rounded-md text-sm text-blue-800 border border-blue-200">
-          <p className="flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-            <span className="font-medium">נתוני המשקל מסונכרנים אוטומטית עם אירועי השכמה בלוח השנה.</span>
-          </p>
-          <p className="mr-7 mt-1">רשומות המסומנות ב"השכמה" מקורן באירועי השכמה בלוח שנה ולכן לא ניתן למחוק אותן מכאן.</p>
-        </div>
-        
-        <div className="overflow-hidden rounded-md border border-gray-200">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">תאריך</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">משקל (ק"ג)</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">שינוי</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">פעולות</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {weightRecords
-                .slice()
-                .reverse()
-                .map((record, index) => {
-                  // חישוב השינוי מהרשומה הקודמת
-                  const prevRecord = index < weightRecords.length - 1 
-                    ? weightRecords[weightRecords.length - index - 2] 
-                    : null;
-                  const change = prevRecord ? record.weight - prevRecord.weight : 0;
-                  
-                  return (
-                    <tr key={record.id} className={record.fromCalendar ? 'bg-yellow-50' : ''}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {record.date.toLocaleDateString('he-IL')}
-                        {record.fromCalendar && (
-                          <span className="mr-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                            השכמה
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        {record.weight}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {index < weightRecords.length - 1 && (
-                          <span
-                            className={`inline-flex items-center ${
-                              change > 0
-                                ? 'text-red-600'
-                                : change < 0
-                                ? 'text-green-600'
-                                : 'text-gray-500'
-                            }`}
-                          >
-                            {change > 0 ? '+' : ''}
-                            {change.toFixed(1)}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {!record.fromCalendar && (
-                          <button 
-                            onClick={() => deleteWeightRecord(record.id)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <FiTrash2 />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      
-      {/* תיבת מידע על היעד */}
-      {weightGoal && (
-        <div className="card bg-purple-50">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">פרטי יעד משקל</h3>
-            <button
-              onClick={deleteWeightGoal}
-              className="p-2 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-full"
-              title="מחק יעד"
-            >
-              <FiTrash2 size={18} />
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div>
-              <div className="mb-2">
-                <p className="text-sm text-gray-500">משקל התחלתי</p>
-                <p className="text-lg font-semibold">{weightGoal.startWeight} ק"ג</p>
-              </div>
-              
-              <div className="mb-2">
-                <p className="text-sm text-gray-500">משקל יעד</p>
-                <p className="text-lg font-semibold">{weightGoal.targetWeight} ק"ג</p>
-              </div>
-              
-              <div className="mb-2">
-                <p className="text-sm text-gray-500">סה"כ לירידה</p>
-                <p className="text-lg font-semibold">
-                  {(weightGoal.startWeight - weightGoal.targetWeight).toFixed(1)} ק"ג
-                </p>
-              </div>
-            </div>
-            
-            <div>
-              <div className="mb-2">
-                <p className="text-sm text-gray-500">תאריך התחלה</p>
-                <p className="text-lg font-semibold">
-                  {weightGoal.startDate.toLocaleDateString('he-IL')}
-                </p>
-              </div>
-              
-              <div className="mb-2">
-                <p className="text-sm text-gray-500">תאריך יעד</p>
-                <p className="text-lg font-semibold">
-                  {weightGoal.targetDate.toLocaleDateString('he-IL')}
-                </p>
-              </div>
-              
-              <div className="mb-2">
-                <p className="text-sm text-gray-500">נותרו</p>
-                <p className="text-lg font-semibold">
-                  {goalProgress.daysLeft} ימים ({goalProgress.daily.toFixed(2)} ק"ג ליום)
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-4">
-            <p className="text-sm text-gray-500 mb-1">התקדמות</p>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <div
-                className="bg-purple-600 h-2.5 rounded-full"
-                style={{ width: `${goalProgress.current}%` }}
-              ></div>
-            </div>
-            <p className="text-xs text-gray-500 mt-1 text-left">
-              {goalProgress.current.toFixed(0)}%
-            </p>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 };
