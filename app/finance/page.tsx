@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FiDollarSign, FiCreditCard, FiFileText, FiSettings, FiUpload, FiBarChart2 } from 'react-icons/fi';
+import { FiDollarSign, FiCreditCard, FiFileText, FiSettings, FiBarChart2 } from 'react-icons/fi';
 import FinanceBalance from '../components/finance/FinanceBalance';
 import FinanceTransactions from '../components/finance/FinanceTransactions';
 import FinanceDebts from '../components/finance/FinanceDebts';
@@ -11,7 +11,7 @@ import FinanceOverview from '../components/finance/FinanceOverview';
 import { useFinanceContext } from '../context/FinanceContext';
 import AuthGuard from '../components/AuthGuard';
 
-type FinanceView = 'balance' | 'transactions' | 'debts' | 'settings' | 'import' | 'overview';
+type FinanceView = 'balance' | 'transactions' | 'debts' | 'settings' | 'overview';
 
 export default function FinancePage() {
   const [selectedView, setSelectedView] = useState<FinanceView>('balance');
@@ -55,8 +55,6 @@ export default function FinancePage() {
         return <FinanceDebts />;
       case 'settings':
         return <FinanceSettings />;
-      case 'import':
-        return <CreditCardImport />;
       case 'overview':
         return <FinanceOverview />;
       default:
@@ -113,17 +111,6 @@ export default function FinancePage() {
               >
                 <FiBarChart2 className="ml-2" />
                 <span>סקירה מקיפה</span>
-              </button>
-              <button
-                onClick={() => setSelectedView('import')}
-                className={`px-4 py-2 rounded-md flex items-center ${
-                  selectedView === 'import' 
-                    ? 'bg-primary-500 text-white shadow-md' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                <FiUpload className="ml-2" />
-                <span>ייבא</span>
               </button>
               <button
                 onClick={() => setSelectedView('settings')}

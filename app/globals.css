@@ -249,22 +249,22 @@ body {
 
 /* Custom Scrollbar Style */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 8px;
+  background: #f1f1f1;
+  border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 8px;
+  background: #d1d5db;
+  border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #9ca3af;
 }
 
 /* Apply to entire document */
@@ -289,4 +289,71 @@ body::-webkit-scrollbar-thumb {
 
 body::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* רקעים מיוחדים עם אלפא */
+.bg-green-25 {
+  background-color: rgba(220, 252, 231, 0.6);
+}
+
+.bg-red-25 {
+  background-color: rgba(254, 226, 226, 0.6);
+}
+
+.bg-blue-25 {
+  background-color: rgba(219, 234, 254, 0.6);
+}
+
+.bg-yellow-25 {
+  background-color: rgba(254, 243, 199, 0.6);
+}
+
+.bg-indigo-25 {
+  background-color: rgba(224, 231, 255, 0.6);
+}
+
+/* כפתור ראשי */
+.btn-primary {
+  @apply flex items-center px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 shadow-sm transition-all;
+}
+
+/* כפתור משני */
+.btn-secondary {
+  @apply flex items-center px-4 py-2 bg-white border border-primary-300 text-primary-600 rounded-md hover:bg-primary-50 shadow-sm transition-all;
+}
+
+/* כרטיס */
+.card {
+  @apply bg-white rounded-lg shadow border border-gray-100 overflow-hidden;
+}
+
+/* מעברי צבע */
+.gradient-indigo {
+  @apply bg-gradient-to-r from-blue-200 via-indigo-200 to-purple-200;
+}
+
+/* עיצוב לכרטיסים בסגנון "מצב הון" */
+.finance-card {
+  @apply bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden;
+}
+
+.finance-card-header {
+  @apply absolute top-0 right-0 left-0 h-0.5 bg-gradient-to-r from-blue-200 via-indigo-200 to-purple-200;
+}
+
+/* אנימציית פעימה */
+@keyframes pulse-animation {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.pulse-animation {
+  animation: pulse-animation 2s infinite;
 } 

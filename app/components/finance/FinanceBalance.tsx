@@ -387,12 +387,11 @@ const FinanceBalance = () => {
         >
           <div className="absolute top-0 right-0 left-0 h-0.5 bg-gradient-to-r from-blue-200 via-indigo-200 to-purple-200"></div>
           
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-            <span className="w-9 h-9 flex items-center justify-center bg-purple-500 rounded-full mr-4 text-white shadow-sm">
+          <div className="flex items-center mb-4">
+            <span className="w-9 h-9 flex items-center justify-center bg-purple-500 rounded-full text-white shadow-sm">
               <FiInfo className="text-lg" />
             </span>
-            חובות והלוואות פתוחים
-          </h3>
+          </div>
           
           <div className="space-y-3">
             <motion.div 
