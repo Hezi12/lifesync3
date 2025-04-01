@@ -68,8 +68,78 @@ export default function FinancePage() {
     <AuthGuard>
       <div className="container mx-auto p-4">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">ניהול פיננסי</h1>
-          <div className="flex items-center gap-2 rtl:space-x-reverse">
+          <div className="overflow-x-auto flex-grow">
+            <div className="flex space-x-4 rtl:space-x-reverse min-w-max">
+              <button
+                onClick={() => setSelectedView('balance')}
+                className={`px-4 py-2 rounded-md flex items-center ${
+                  selectedView === 'balance' 
+                    ? 'bg-primary-500 text-white shadow-md' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <FiDollarSign className="ml-2" />
+                <span>מצב הון</span>
+              </button>
+              <button
+                onClick={() => setSelectedView('transactions')}
+                className={`px-4 py-2 rounded-md flex items-center ${
+                  selectedView === 'transactions' 
+                    ? 'bg-primary-500 text-white shadow-md' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <FiCreditCard className="ml-2" />
+                <span>עסקאות</span>
+              </button>
+              <button
+                onClick={() => setSelectedView('debts')}
+                className={`px-4 py-2 rounded-md flex items-center ${
+                  selectedView === 'debts' 
+                    ? 'bg-primary-500 text-white shadow-md' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <FiFileText className="ml-2" />
+                <span>חובות והלוואות</span>
+              </button>
+              <button
+                onClick={() => setSelectedView('overview')}
+                className={`px-4 py-2 rounded-md flex items-center ${
+                  selectedView === 'overview' 
+                    ? 'bg-primary-500 text-white shadow-md' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <FiBarChart2 className="ml-2" />
+                <span>סקירה מקיפה</span>
+              </button>
+              <button
+                onClick={() => setSelectedView('import')}
+                className={`px-4 py-2 rounded-md flex items-center ${
+                  selectedView === 'import' 
+                    ? 'bg-primary-500 text-white shadow-md' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <FiUpload className="ml-2" />
+                <span>ייבא</span>
+              </button>
+              <button
+                onClick={() => setSelectedView('settings')}
+                className={`px-4 py-2 rounded-md flex items-center ${
+                  selectedView === 'settings' 
+                    ? 'bg-primary-500 text-white shadow-md' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <FiSettings className="ml-2" />
+                <span>הגדרות</span>
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 rtl:space-x-reverse mr-4">
             {!isOnline && (
               <div className="bg-amber-100 text-amber-800 px-3 py-1 rounded-md flex items-center text-sm">
                 <span className="ml-1">מצב לא מקוון</span>
@@ -78,83 +148,13 @@ export default function FinancePage() {
             )}
             {pendingChanges && (
               <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-md flex items-center text-sm">
-                <span>שינויים בהמתנה לסנכרון</span>
+                <span>שינויים בהמתנה</span>
               </div>
             )}
-            <div className="bg-primary-100 text-primary-800 px-3 py-1 rounded-md">
+            <div className="bg-primary-100 text-primary-800 px-3 py-1 rounded-md flex items-center">
+              <FiDollarSign className="ml-1" />
               <span className="font-bold">{totalBalance.toLocaleString()} ₪</span>
             </div>
-          </div>
-        </div>
-        
-        <div className="mb-6 overflow-x-auto">
-          <div className="flex space-x-4 rtl:space-x-reverse min-w-max">
-            <button
-              onClick={() => setSelectedView('balance')}
-              className={`px-4 py-2 rounded-md flex items-center ${
-                selectedView === 'balance' 
-                  ? 'bg-primary-500 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              <FiDollarSign className="ml-2" />
-              <span>מצב הון</span>
-            </button>
-            <button
-              onClick={() => setSelectedView('transactions')}
-              className={`px-4 py-2 rounded-md flex items-center ${
-                selectedView === 'transactions' 
-                  ? 'bg-primary-500 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              <FiCreditCard className="ml-2" />
-              <span>עסקאות</span>
-            </button>
-            <button
-              onClick={() => setSelectedView('debts')}
-              className={`px-4 py-2 rounded-md flex items-center ${
-                selectedView === 'debts' 
-                  ? 'bg-primary-500 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              <FiFileText className="ml-2" />
-              <span>חובות והלוואות</span>
-            </button>
-            <button
-              onClick={() => setSelectedView('overview')}
-              className={`px-4 py-2 rounded-md flex items-center ${
-                selectedView === 'overview' 
-                  ? 'bg-primary-500 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              <FiBarChart2 className="ml-2" />
-              <span>סקירה מקיפה</span>
-            </button>
-            <button
-              onClick={() => setSelectedView('import')}
-              className={`px-4 py-2 rounded-md flex items-center ${
-                selectedView === 'import' 
-                  ? 'bg-primary-500 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              <FiUpload className="ml-2" />
-              <span>ייבא</span>
-            </button>
-            <button
-              onClick={() => setSelectedView('settings')}
-              className={`px-4 py-2 rounded-md flex items-center ${
-                selectedView === 'settings' 
-                  ? 'bg-primary-500 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              <FiSettings className="ml-2" />
-              <span>הגדרות</span>
-            </button>
           </div>
         </div>
         
