@@ -102,6 +102,13 @@ const FinanceDebts = () => {
     await toggleDebtLoanPaid(id, !isPaid);
   };
   
+  // מחיקת חוב/הלוואה
+  const handleDeleteDebtLoan = async (id: string) => {
+    if (window.confirm('האם אתה בטוח שברצונך למחוק את החוב/ההלוואה לצמיתות?')) {
+      await deleteDebtLoan(id);
+    }
+  };
+  
   // בדיקה אם התאריך עבר
   const isOverdue = (date: Date | undefined): boolean => {
     if (!date) return false;
@@ -394,35 +401,50 @@ const FinanceDebts = () => {
                           {item.amount.toLocaleString()} ₪
                         </div>
                         
-                        {!item.isPaid && (
+                        <div className="flex gap-1">
+                          {!item.isPaid && (
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTogglePaidStatus(item.id, item.isPaid);
+                              }}
+                              className="bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full p-1.5"
+                              title="סמן כשולם"
+                            >
+                              <FiCheck className="text-sm" />
+                            </motion.button>
+                          )}
+                          
+                          {item.isPaid && (
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTogglePaidStatus(item.id, item.isPaid);
+                              }}
+                              className="bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full p-1.5"
+                              title="סמן כלא שולם"
+                            >
+                              <FiX className="text-sm" />
+                            </motion.button>
+                          )}
+                          
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleTogglePaidStatus(item.id, item.isPaid);
+                              handleDeleteDebtLoan(item.id);
                             }}
-                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full p-1.5"
-                            title="סמן כשולם"
+                            className="bg-red-50 hover:bg-red-100 text-red-600 rounded-full p-1.5"
+                            title="מחק לצמיתות"
                           >
-                            <FiCheck className="text-sm" />
+                            <FiTrash2 className="text-sm" />
                           </motion.button>
-                        )}
-                        
-                        {item.isPaid && (
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTogglePaidStatus(item.id, item.isPaid);
-                            }}
-                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full p-1.5"
-                            title="סמן כלא שולם"
-                          >
-                            <FiX className="text-sm" />
-                          </motion.button>
-                        )}
+                        </div>
                       </div>
                     </div>
                     
