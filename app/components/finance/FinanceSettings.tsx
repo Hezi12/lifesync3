@@ -421,7 +421,10 @@ const FinanceSettings = () => {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">יתרה התחלתית</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        יתרה התחלתית
+                        <span className="mr-1 text-xs text-gray-500">(ניתן להזין גם ערכים שליליים)</span>
+                      </label>
                       <input
                         type="number"
                         value={newPaymentMethod.initialBalance}
@@ -434,6 +437,7 @@ const FinanceSettings = () => {
                             currentBalance: editingPaymentMethodId ? newPaymentMethod.currentBalance : value 
                           });
                         }}
+                        step="any"
                         className="w-full p-2 border rounded-md"
                         placeholder="0"
                       />
