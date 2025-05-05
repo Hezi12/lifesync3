@@ -11,16 +11,42 @@ import {
   FiSun,
   FiMoon,
   FiLogOut,
-  FiUser
+  FiUser,
+  FiMenu,
+  FiX
 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  
+  // בדיקה האם המכשיר הוא מובייל
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkIfMobile();
+    window.addEventListener('resize', checkIfMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
+  
+  // סגירת התפריט אחרי לחיצה על לינק במובייל
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setIsOpen(false);
+    }
+  };
   
   const isActive = (path: string) => {
     return pathname === path;
@@ -61,80 +87,169 @@ export default function Sidebar() {
     return '?';
   };
 
+  // אנימציות לתפריט הנפתח
+  const sidebarVariants = {
+    open: { 
+      x: 0,
+      transition: { type: "spring", stiffness: 300, damping: 30 }
+    },
+    closed: { 
+      x: "100%",
+      transition: { type: "spring", stiffness: 300, damping: 30 }
+    }
+  };
+
+  // כפתור ההמבורגר במובייל
+  const MobileMenuButton = () => (
+    <button
+      onClick={() => setIsOpen(!isOpen)}
+      className="fixed top-4 right-4 z-50 p-2 rounded-full bg-white shadow-md text-primary-600"
+      aria-label={isOpen ? "סגור תפריט" : "פתח תפריט"}
+    >
+      {isOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+    </button>
+  );
+
   return (
-    <div className="h-screen w-16 fixed right-0 top-0 bg-white shadow-md z-10 flex flex-col items-center py-6">
-      <div className="mb-6">
-        <Link href="/" className="text-primary-500 font-bold">
-          <span className="text-lg block">LS</span>
-          <span className="text-xs block">3</span>
-        </Link>
-      </div>
+    <>
+      {/* כפתור המבורגר למובייל */}
+      {isMobile && <MobileMenuButton />}
       
-      <div className="flex flex-col items-center space-y-8 flex-grow">
-        {links.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={`p-2 rounded-full transition-colors duration-200 flex items-center justify-center ${
-              isActive(link.href)
-                ? 'bg-primary-100 text-primary-600'
-                : 'text-gray-500 hover:text-primary-500 hover:bg-gray-100'
-            }`}
-            title={link.label}
-          >
-            {link.icon}
-          </Link>
-        ))}
-      </div>
+      {/* אוברליי כהה מאחורי התפריט במובייל */}
+      {isMobile && isOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-20"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
       
-      <div className="mt-auto mb-6 flex flex-col items-center space-y-4">
-        <button
-          className="p-2 rounded-full text-gray-500 hover:text-primary-500 hover:bg-gray-100"
-          title="מצב לילה/יום"
-        >
-          <FiSun size={22} />
-        </button>
-        
-        <div className="relative">
-          <button
-            onClick={() => setShowUserMenu(!showUserMenu)}
-            className={`w-10 h-10 rounded-full flex items-center justify-center ${
-              user ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-600'
+      {/* התפריט עצמו */}
+      <AnimatePresence>
+        {(!isMobile || (isMobile && isOpen)) && (
+          <motion.div
+            className={`h-screen w-16 fixed right-0 top-0 bg-white shadow-md z-30 flex flex-col items-center py-6 ${
+              isMobile ? "w-64" : "w-16"
             }`}
-            title={user?.email || 'משתמש לא מחובר'}
+            variants={sidebarVariants}
+            initial={isMobile ? "closed" : "open"}
+            animate="open"
+            exit="closed"
           >
-            {user ? getUserInitials() : <FiUser size={18} />}
-          </button>
-          
-          {showUserMenu && (
-            <div className="absolute left-16 bottom-0 bg-white rounded-md shadow-md py-2 w-48 text-right">
-              {user ? (
-                <>
-                  <div className="px-4 py-2 border-b border-gray-100">
-                    <p className="text-sm font-medium truncate">{user.email}</p>
-                    <p className="text-xs text-gray-500">מחובר</p>
+            <div className="mb-6">
+              <Link href="/" className="text-primary-500 font-bold" onClick={handleLinkClick}>
+                <span className="text-lg block">LS</span>
+                <span className="text-xs block">3</span>
+              </Link>
+            </div>
+            
+            <div className="flex flex-col items-center space-y-8 flex-grow w-full">
+              {links.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={handleLinkClick}
+                  className={`p-2 rounded-full transition-colors duration-200 flex items-center justify-center ${
+                    isMobile ? "w-full justify-start px-6 rounded-full" : ""
+                  } ${
+                    isActive(link.href)
+                      ? 'bg-primary-100 text-primary-600'
+                      : 'text-gray-500 hover:text-primary-500 hover:bg-gray-100'
+                  }`}
+                  title={link.label}
+                >
+                  {link.icon}
+                  {isMobile && <span className="mr-3">{link.label}</span>}
+                </Link>
+              ))}
+            </div>
+            
+            <div className="mt-auto mb-6 flex flex-col items-center space-y-4 w-full">
+              <button
+                className={`p-2 rounded-full text-gray-500 hover:text-primary-500 hover:bg-gray-100 ${
+                  isMobile ? "w-full flex items-center px-6" : ""
+                }`}
+                title="מצב לילה/יום"
+              >
+                <FiSun size={22} />
+                {isMobile && <span className="mr-3">מצב יום/לילה</span>}
+              </button>
+              
+              <div className={`relative ${isMobile ? "w-full" : ""}`}>
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className={`${isMobile ? "w-full flex items-center px-6 py-2 rounded-lg" : "w-10 h-10 rounded-full flex items-center justify-center"} ${
+                    user ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-600'
+                  }`}
+                  title={user?.email || 'משתמש לא מחובר'}
+                >
+                  {isMobile ? (
+                    <>
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary-200">
+                        {user ? getUserInitials() : <FiUser size={18} />}
+                      </div>
+                      <span className="mr-3 text-sm truncate">
+                        {user?.email || 'משתמש לא מחובר'}
+                      </span>
+                    </>
+                  ) : (
+                    <>{user ? getUserInitials() : <FiUser size={18} />}</>
+                  )}
+                </button>
+                
+                {!isMobile && showUserMenu && (
+                  <div className="absolute left-16 bottom-0 bg-white rounded-md shadow-md py-2 w-48 text-right">
+                    {user ? (
+                      <>
+                        <div className="px-4 py-2 border-b border-gray-100">
+                          <p className="text-sm font-medium truncate">{user.email}</p>
+                          <p className="text-xs text-gray-500">מחובר</p>
+                        </div>
+                        <button
+                          onClick={handleLogout}
+                          className="w-full px-4 py-2 text-sm text-right flex items-center text-gray-700 hover:bg-gray-100"
+                        >
+                          <FiLogOut className="ml-2" />
+                          <span>התנתק</span>
+                        </button>
+                      </>
+                    ) : (
+                      <Link 
+                        href="/login"
+                        className="w-full px-4 py-2 text-sm text-right flex items-center text-gray-700 hover:bg-gray-100"
+                        onClick={handleLinkClick}
+                      >
+                        <FiUser className="ml-2" />
+                        <span>התחבר</span>
+                      </Link>
+                    )}
                   </div>
+                )}
+                
+                {isMobile && user && (
                   <button
                     onClick={handleLogout}
-                    className="w-full px-4 py-2 text-sm text-right flex items-center text-gray-700 hover:bg-gray-100"
+                    className="w-full mt-2 px-6 py-2 text-sm text-right flex items-center text-red-600 hover:bg-red-50"
                   >
                     <FiLogOut className="ml-2" />
                     <span>התנתק</span>
                   </button>
-                </>
-              ) : (
-                <Link 
-                  href="/login"
-                  className="w-full px-4 py-2 text-sm text-right flex items-center text-gray-700 hover:bg-gray-100"
-                >
-                  <FiUser className="ml-2" />
-                  <span>התחבר</span>
-                </Link>
-              )}
+                )}
+                
+                {isMobile && !user && (
+                  <Link 
+                    href="/login"
+                    className="w-full mt-2 px-6 py-2 text-sm text-right flex items-center text-primary-600 hover:bg-primary-50"
+                    onClick={handleLinkClick}
+                  >
+                    <FiUser className="ml-2" />
+                    <span>התחבר</span>
+                  </Link>
+                )}
+              </div>
             </div>
-          )}
-        </div>
-      </div>
-    </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 } 
