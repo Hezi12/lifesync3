@@ -16,11 +16,16 @@ export default function RootLayout({
   return (
     <html lang="he" dir="rtl">
       <head>
-        <title>LifeSync3 - מרכז החיים הדיגיטלי שלך</title>
+        <title>Life</title>
         <meta name="description" content="אפליקציה לניהול החיים היומיומיים - לוח שנה, ניהול כספים, בריאות, והערות אישיות" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-        <meta name="apple-mobile-web-app-title" content="LifeSync3" />
+        <meta name="apple-mobile-web-app-title" content="Life" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
+        <link rel="icon" href="/favicon/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon/favicon.ico" sizes="any" />
+        <link rel="apple-touch-icon" href="/favicon/apple-touch-icon.png" />
+        <link rel="manifest" href="/favicon/manifest.json" />
+        <meta name="theme-color" content="#FF8C00" />
       </head>
       <body className="font-sfhebrew">
         <AuthProvider>
