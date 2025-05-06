@@ -93,7 +93,8 @@ const convertDebtLoanFromFirestore = (doc: DocumentData): DebtLoan => {
     notes: data.notes,
     paymentMethodId: data.paymentMethodId,
     isDebt: data.isDebt,
-    isPaid: data.isPaid
+    isPaid: data.isPaid,
+    affectsBalance: data.affectsBalance ?? false
   };
 };
 
@@ -105,7 +106,8 @@ const convertDebtLoanToFirestore = (debtLoan: DebtLoan) => {
     notes: debtLoan.notes,
     paymentMethodId: debtLoan.paymentMethodId,
     isDebt: debtLoan.isDebt,
-    isPaid: debtLoan.isPaid
+    isPaid: debtLoan.isPaid,
+    affectsBalance: debtLoan.affectsBalance
   };
 };
 
@@ -361,7 +363,7 @@ export const createDebtLoan = async (userId: string, debtLoan: Omit<DebtLoan, 'i
   }
 };
 
-// עדכון חוב/הלוואה קיים/ת
+// עדכון חוב/הלוואה קיימת
 export const updateDebtLoan = async (debtLoanId: string, changes: Partial<DebtLoan>): Promise<void> => {
   try {
     const debtLoanRef = doc(db, DEBT_LOANS_COLLECTION, debtLoanId);
@@ -374,6 +376,7 @@ export const updateDebtLoan = async (debtLoanId: string, changes: Partial<DebtLo
     if (changes.paymentMethodId !== undefined) updates.paymentMethodId = changes.paymentMethodId;
     if (changes.isDebt !== undefined) updates.isDebt = changes.isDebt;
     if (changes.isPaid !== undefined) updates.isPaid = changes.isPaid;
+    if (changes.affectsBalance !== undefined) updates.affectsBalance = changes.affectsBalance;
     
     await updateDoc(debtLoanRef, updates);
   } catch (error) {

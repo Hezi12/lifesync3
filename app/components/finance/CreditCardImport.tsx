@@ -4,7 +4,7 @@ import { useState, useRef, useCallback } from 'react';
 import { FiUpload, FiX, FiCheckCircle, FiAlertCircle, FiTrash2, FiFile } from 'react-icons/fi';
 import * as XLSX from 'xlsx';
 import { useFinanceContext } from '../../context/FinanceContext';
-import { Transaction } from '../../types';
+import { Transaction, PaymentMethod, FinancialCategory } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 
 // ממשק לנתוני חיוב כרטיס אשראי כפי שנקראים מהקובץ
@@ -27,10 +27,15 @@ interface MappedCharge {
   transaction: Transaction;
 }
 
-const CreditCardImport = () => {
+// הגדרת הפרופס של הקומפוננט
+interface CreditCardImportProps {
+  onClose: () => void;
+  paymentMethods: PaymentMethod[];
+  categories: FinancialCategory[];
+}
+
+const CreditCardImport = ({ onClose, paymentMethods, categories }: CreditCardImportProps) => {
   const { 
-    paymentMethods, 
-    categories, 
     addTransaction,
     recalculateBalances
   } = useFinanceContext();

@@ -54,7 +54,7 @@ export default function RootLayout({
                 <FinanceProvider>
                   <div className="flex">
                     <Sidebar />
-                    <main className={`flex-grow min-h-screen p-4 sm:p-6 ${isMobile ? '' : 'mr-16'}`}>
+                    <main className={`flex-grow min-h-screen p-4 sm:p-6 ${isMobile ? 'pb-16' : 'mr-16'}`}>
                       {children}
                     </main>
                   </div>

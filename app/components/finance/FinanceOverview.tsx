@@ -27,6 +27,25 @@ const FinanceOverview = () => {
   // לשוניות להצגת מידע שונה
   const [activeTab, setActiveTab] = useState<'all' | 'accounts' | 'debts' | 'transactions'>('all');
 
+  // הוספת זיהוי מסך מובייל
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // בדיקת גודל מסך
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // בדיקה ראשונית
+    checkIfMobile();
+    
+    // האזנה לשינויים בגודל המסך
+    window.addEventListener('resize', checkIfMobile);
+    
+    // ניקוי
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
+
   // סינון עסקאות לפי טווח תאריכים
   useEffect(() => {
     if (!transactions.length) return;
@@ -167,47 +186,51 @@ const FinanceOverview = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* סינון וחיפוש */}
+    <div className="space-y-4 sm:space-y-6">
+      {/* סינון וחיפוש - מותאם מובייל */}
       <motion.div 
-        className="bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
+        className="bg-white rounded-xl p-3 sm:p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
         <div className="absolute top-0 right-0 left-0 h-0.5 bg-gradient-to-r from-blue-200 via-indigo-200 to-purple-200"></div>
         
-        <div className="flex flex-wrap gap-4 items-center">
-          <div className="flex items-center bg-gray-50 rounded-lg px-3 py-2">
-            <FiCalendar className="text-gray-400 ml-2" />
-          <select 
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value as any)}
-              className="bg-transparent border-none focus:outline-none"
-          >
-            <option value="week">שבוע אחרון</option>
-            <option value="month">חודש אחרון</option>
-              <option value="year">שנה אחרונה</option>
-            <option value="all">הכל</option>
-          </select>
+        <div className="flex flex-col space-y-3">
+          {/* סינון תאריכים וחיפוש בשורה נפרדת במובייל */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full">
+            <div className="flex items-center bg-gray-50 rounded-lg px-3 py-2 w-full sm:w-auto">
+              <FiCalendar className="text-gray-400 ml-2" />
+              <select 
+                value={dateRange}
+                onChange={(e) => setDateRange(e.target.value as any)}
+                className="bg-transparent border-none focus:outline-none"
+              >
+                <option value="week">שבוע אחרון</option>
+                <option value="month">חודש אחרון</option>
+                <option value="year">שנה אחרונה</option>
+                <option value="all">הכל</option>
+              </select>
+            </div>
+            
+            <div className="flex items-center bg-gray-50 rounded-lg px-3 py-2 flex-1">
+              <FiSearch className="text-gray-400 ml-2" />
+              <input
+                type="text"
+                placeholder="חיפוש..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-transparent border-none focus:outline-none w-full"
+              />
+            </div>
           </div>
           
-          <div className="flex items-center bg-gray-50 rounded-lg px-3 py-2 flex-1">
-            <FiSearch className="text-gray-400 ml-2" />
-          <input
-            type="text"
-            placeholder="חיפוש..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-transparent border-none focus:outline-none w-full"
-            />
-          </div>
-          
-          <div className="flex space-x-2 space-x-reverse">
+          {/* לשוניות בשורה נפרדת עם התאמה למובייל */}
+          <div className="grid grid-cols-2 sm:flex gap-2">
             <motion.button
               whileHover={{ y: -2 }}
               whileTap={{ scale: 0.95 }}
-              className={`px-4 py-2 rounded-lg ${activeTab === 'all' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              className={`px-3 py-2 rounded-lg ${activeTab === 'all' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               onClick={() => setActiveTab('all')}
             >
               הכל
@@ -216,7 +239,7 @@ const FinanceOverview = () => {
             <motion.button
               whileHover={{ y: -2 }}
               whileTap={{ scale: 0.95 }}
-              className={`px-4 py-2 rounded-lg ${activeTab === 'accounts' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              className={`px-3 py-2 rounded-lg ${activeTab === 'accounts' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               onClick={() => setActiveTab('accounts')}
             >
               חשבונות
@@ -225,7 +248,7 @@ const FinanceOverview = () => {
             <motion.button
               whileHover={{ y: -2 }}
               whileTap={{ scale: 0.95 }}
-              className={`px-4 py-2 rounded-lg ${activeTab === 'debts' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              className={`px-3 py-2 rounded-lg ${activeTab === 'debts' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               onClick={() => setActiveTab('debts')}
             >
               חובות והלוואות
@@ -234,27 +257,28 @@ const FinanceOverview = () => {
             <motion.button
               whileHover={{ y: -2 }}
               whileTap={{ scale: 0.95 }}
-              className={`px-4 py-2 rounded-lg ${activeTab === 'transactions' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              className={`px-3 py-2 rounded-lg ${activeTab === 'transactions' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               onClick={() => setActiveTab('transactions')}
             >
               עסקאות
             </motion.button>
-            
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={exportToExcel}
-              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-sm hover:bg-indigo-700"
-            >
-              <FiDownload className="ml-1" />
-              ייצוא
-            </motion.button>
           </div>
+          
+          {/* כפתור ייצוא */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={exportToExcel}
+            className="flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-sm hover:bg-indigo-700 w-full sm:w-auto self-center sm:self-start"
+          >
+            <FiDownload className="ml-1" />
+            ייצוא לאקסל
+          </motion.button>
         </div>
       </motion.div>
 
-      {/* כרטיסי סיכום */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* כרטיסי סיכום - שורה אחת במובייל */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         {/* הכנסות */}
         <motion.div 
           className="bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
@@ -383,15 +407,16 @@ const FinanceOverview = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className="bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
+            className="bg-white rounded-xl p-3 sm:p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
           >
             <div className="absolute top-0 right-0 left-0 h-0.5 bg-gradient-to-r from-blue-200 via-blue-300 to-blue-400"></div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3 sm:mb-4 flex items-center">
               <IoWallet className="ml-2 text-blue-500" />
               אמצעי תשלום וחשבונות
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* אמצעי תשלום - עמודה אחת במובייל */}
+            <div className="grid grid-cols-1 gap-3 sm:gap-4">
               {paymentMethods.map(method => {
                 const methodTransactions = filteredTransactions.filter(t => t.paymentMethodId === method.id);
                 const totalChange = methodTransactions.reduce((sum, t) => 
@@ -401,16 +426,16 @@ const FinanceOverview = () => {
                 return (
                   <motion.div
                     key={method.id}
-                    whileHover={{ scale: 1.02, y: -5 }}
-                    className="bg-gray-50 rounded-lg p-4 border border-gray-100"
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-100"
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <h4 className="font-medium text-gray-800">{method.name}</h4>
-                        <div className="mt-1 text-3xl font-bold text-gray-800">
+                        <div className="mt-1 text-xl sm:text-3xl font-bold text-gray-800">
                           ₪{method.currentBalance.toLocaleString()}
                         </div>
-                        <div className="mt-1 text-xs text-gray-500">
+                        <div className="mt-1 text-2xs sm:text-xs text-gray-500">
                           יתרה התחלתית: ₪{method.initialBalance.toLocaleString()}
                         </div>
                       </div>
@@ -423,7 +448,7 @@ const FinanceOverview = () => {
                   </motion.div>
                 );
               })}
-        </div>
+            </div>
           </motion.div>
         )}
         
@@ -434,19 +459,23 @@ const FinanceOverview = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className="bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
+            className="bg-white rounded-xl p-3 sm:p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
           >
             <div className="absolute top-0 right-0 left-0 h-0.5 bg-gradient-to-r from-purple-200 via-purple-300 to-purple-400"></div>
-            <div className="flex items-center mb-4">
-              <IoSwapVertical className="text-lg text-purple-500" />
-      </div>
+            <div className="flex items-center mb-3 sm:mb-4">
+              <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                <IoSwapVertical className="ml-2 text-purple-500" />
+                חובות והלוואות
+              </h3>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* חובות והלוואות - עמודה אחת במובייל */}
+            <div className="grid grid-cols-1 gap-3 sm:gap-4">
               {debtLoans.map(d => (
                 <motion.div
                   key={d.id}
-                  whileHover={{ scale: 1.02, y: -5 }}
-                  className={`bg-gray-50 rounded-lg p-4 border border-l-4 ${
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  className={`bg-gray-50 rounded-lg p-3 sm:p-4 border border-l-4 ${
                     d.isPaid
                       ? 'border-gray-200 border-l-gray-300'
                       : d.isDebt
@@ -454,45 +483,45 @@ const FinanceOverview = () => {
                         : 'border-green-100 border-l-green-500'
                   }`}
                 >
-                  <div className="flex items-center mb-2">
+                  <div className="flex flex-wrap items-center mb-2 gap-2">
                     <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center ml-2">
                       <HiUserCircle className={`text-xl ${
                         d.isPaid ? 'text-gray-400' : d.isDebt ? 'text-red-500' : 'text-green-500'
                       }`} />
                     </div>
                     <h4 className="font-medium text-gray-800">{d.personName}</h4>
-                    <div className="mr-auto">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    <div className="ml-auto">
+                      <span className={`text-2xs sm:text-xs px-2 py-0.5 rounded-full ${
                       d.isPaid 
                           ? 'bg-gray-200 text-gray-700'
                           : d.isDebt
                             ? 'bg-red-100 text-red-600'
                             : 'bg-green-100 text-green-600'
-                    }`}>
+                      }`}>
                         {d.isPaid ? 'שולם' : d.isDebt ? 'אני חייב' : 'חייבים לי'}
-                    </span>
-        </div>
-      </div>
+                      </span>
+                    </div>
+                  </div>
 
-                <div className={`text-xl font-bold ${
-                  d.isPaid 
-                    ? 'text-gray-500' 
-                    : d.isDebt 
-                      ? 'text-red-600' 
-                      : 'text-green-600'
-                }`}>
-                  ₪{d.amount.toLocaleString()}
-                </div>
-                
-                {d.dueDate && (
-                  <div className="mt-2 text-xs flex items-center text-gray-600">
-                    <FiCalendar className="ml-1" />
-                    {format(new Date(d.dueDate), 'dd/MM/yyyy', { locale: he })}
-        </div>
-                )}
-              </motion.div>
-            ))}
-        </div>
+                  <div className={`text-xl font-bold ${
+                    d.isPaid 
+                      ? 'text-gray-500' 
+                      : d.isDebt 
+                        ? 'text-red-600' 
+                        : 'text-green-600'
+                  }`}>
+                    ₪{d.amount.toLocaleString()}
+                  </div>
+                  
+                  {d.dueDate && (
+                    <div className="mt-2 text-2xs sm:text-xs flex items-center text-gray-600">
+                      <FiCalendar className="ml-1" />
+                      {format(new Date(d.dueDate), 'dd/MM/yyyy', { locale: he })}
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
           </motion.div>
         )}
         
@@ -503,10 +532,10 @@ const FinanceOverview = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className="bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
+            className="bg-white rounded-xl p-3 sm:p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
           >
             <div className="absolute top-0 right-0 left-0 h-0.5 bg-gradient-to-r from-green-200 via-green-300 to-green-400"></div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3 sm:mb-4 flex items-center">
               <IoTrendingUp className="ml-2 text-green-500" />
               היסטוריית עסקאות
             </h3>
@@ -518,49 +547,50 @@ const FinanceOverview = () => {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className="bg-gray-50 rounded-lg p-3 border border-gray-100 hover:shadow-sm transition-all flex items-center"
+                  className="bg-gray-50 rounded-lg p-3 border border-gray-100 hover:shadow-sm transition-all"
                 >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ml-3 ${
-                    t.type === 'income' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
-                  }`}>
-                    {t.type === 'income' ? <IoArrowUp /> : <IoArrowDown />}
-      </div>
-
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-800">{t.description}</div>
-                    <div className="text-sm text-gray-500 flex flex-wrap gap-2">
-                      <span className="flex items-center">
-                        <FiCalendar className="ml-1 text-xs" />
-                        {format(new Date(t.date), 'dd/MM/yyyy', { locale: he })}
-                      </span>
-                      <span className="flex items-center">
-                        <IoWallet className="ml-1 text-xs" />
-                        {getPaymentMethodName(t.paymentMethodId)}
-                      </span>
-                      <span>{getCategoryName(t.categoryId)}</span>
-          </div>
-        </div>
+                  <div className="flex items-center mb-2">
+                    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center ml-2 sm:ml-3 ${
+                      t.type === 'income' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                    }`}>
+                      {t.type === 'income' ? <IoArrowUp /> : <IoArrowDown />}
+                    </div>
+                    <div className="flex-1 mr-2">
+                      <div className="font-medium text-gray-800 break-words">{t.description}</div>
+                    </div>
+                    <div className={`text-base sm:text-lg font-bold ${
+                      t.type === 'income' ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {t.type === 'income' ? '+' : '-'}₪{t.amount.toLocaleString()}
+                    </div>
+                  </div>
                   
-                  <div className={`text-lg font-bold ${
-                    t.type === 'income' ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {t.type === 'income' ? '+' : '-'}₪{t.amount.toLocaleString()}
-          </div>
+                  <div className="text-2xs sm:text-xs text-gray-500 flex flex-wrap gap-2 mr-10">
+                    <span className="flex items-center">
+                      <FiCalendar className="ml-1 text-xs" />
+                      {format(new Date(t.date), 'dd/MM/yyyy', { locale: he })}
+                    </span>
+                    <span className="flex items-center">
+                      <IoWallet className="ml-1 text-xs" />
+                      {getPaymentMethodName(t.paymentMethodId)}
+                    </span>
+                    <span>{getCategoryName(t.categoryId)}</span>
+                  </div>
                 </motion.div>
               ))}
               
               {filteredTransactions.length > 10 && (
                 <div className="text-center py-2 text-gray-500">
                   מציג 10 עסקאות אחרונות מתוך {filteredTransactions.length}
-        </div>
+                </div>
               )}
               
               {filteredTransactions.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   לא נמצאו עסקאות בטווח הזמן שנבחר
-          </div>
+                </div>
               )}
-        </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

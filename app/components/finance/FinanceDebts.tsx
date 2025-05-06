@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FiPlus, FiCheck, FiX, FiEdit, FiTrash2, FiDollarSign, FiCalendar, FiClock, FiAlertCircle } from 'react-icons/fi';
 import { HiCalendarDays, HiUserCircle } from 'react-icons/hi2';
 import { IoWallet, IoSparkles, IoArrowDown, IoArrowUp, IoCashOutline, IoSwapVertical } from 'react-icons/io5';
@@ -23,6 +23,23 @@ const FinanceDebts = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDebtLoan, setEditingDebtLoan] = useState<DebtLoan | null>(null);
   const [filterType, setFilterType] = useState<'all' | 'debt' | 'loan'>('all');
+  const [isMobile, setIsMobile] = useState(false);
+
+  // זיהוי גודל המסך
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // בדיקה ראשונית
+    checkIfMobile();
+    
+    // האזנה לשינויים בגודל המסך
+    window.addEventListener('resize', checkIfMobile);
+    
+    // ניקוי
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
   
   // סינון חובות והלוואות לפי סוג
   const filteredDebtLoans = debtLoans.filter(item => {
@@ -137,25 +154,25 @@ const FinanceDebts = () => {
   };
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-6">
       {/* סיכום */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         {/* חובות */}
         <motion.div 
-          className="bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
+          className="bg-white rounded-xl p-4 sm:p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
         >
           <div className="absolute top-0 right-0 left-0 h-0.5 bg-gradient-to-r from-red-200 via-red-300 to-red-400"></div>
           
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-base font-semibold text-gray-800">סה"כ חובות</h3>
+          <div className="flex justify-between items-center mb-2 sm:mb-3">
+            <h3 className="text-sm sm:text-base font-semibold text-gray-800">סה"כ חובות</h3>
             <motion.div 
-              whileHover={{ rotate: 15, scale: 1.1 }}
-              className="w-9 h-9 flex items-center justify-center bg-red-500 rounded-full text-white shadow-sm"
+              whileHover={{ rotate: isMobile ? 5 : 15, scale: isMobile ? 1.05 : 1.1 }}
+              className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-red-500 rounded-full text-white shadow-sm"
             >
-              <IoArrowDown className="text-lg" />
+              <IoArrowDown className="text-base sm:text-lg" />
             </motion.div>
           </div>
           
@@ -164,34 +181,34 @@ const FinanceDebts = () => {
               key={summary.debts}
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-3xl font-bold text-red-600"
+              className="text-xl sm:text-3xl font-bold text-red-600"
             >
               {summary.debts.toLocaleString()}
             </motion.span>
-            <span className="text-lg text-gray-500 mr-1">₪</span>
+            <span className="text-base sm:text-lg text-gray-500 mr-1">₪</span>
           </div>
           
-          <div className="mt-3 text-xs text-gray-500">
+          <div className="mt-1 sm:mt-3 text-2xs sm:text-xs text-gray-500">
             סכום שאני חייב לאחרים
           </div>
         </motion.div>
         
         {/* הלוואות */}
         <motion.div 
-          className="bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
+          className="bg-white rounded-xl p-4 sm:p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
         >
           <div className="absolute top-0 right-0 left-0 h-0.5 bg-gradient-to-r from-green-200 via-green-300 to-green-400"></div>
           
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-base font-semibold text-gray-800">סה"כ הלוואות</h3>
+          <div className="flex justify-between items-center mb-2 sm:mb-3">
+            <h3 className="text-sm sm:text-base font-semibold text-gray-800">סה"כ הלוואות</h3>
             <motion.div 
-              whileHover={{ rotate: 15, scale: 1.1 }}
-              className="w-9 h-9 flex items-center justify-center bg-green-500 rounded-full text-white shadow-sm"
+              whileHover={{ rotate: isMobile ? 5 : 15, scale: isMobile ? 1.05 : 1.1 }}
+              className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-green-500 rounded-full text-white shadow-sm"
             >
-              <IoArrowUp className="text-lg" />
+              <IoArrowUp className="text-base sm:text-lg" />
             </motion.div>
           </div>
           
@@ -200,34 +217,34 @@ const FinanceDebts = () => {
               key={summary.loans}
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-3xl font-bold text-green-600"
+              className="text-xl sm:text-3xl font-bold text-green-600"
             >
               {summary.loans.toLocaleString()}
             </motion.span>
-            <span className="text-lg text-gray-500 mr-1">₪</span>
+            <span className="text-base sm:text-lg text-gray-500 mr-1">₪</span>
           </div>
           
-          <div className="mt-3 text-xs text-gray-500">
+          <div className="mt-1 sm:mt-3 text-2xs sm:text-xs text-gray-500">
             סכום שחייבים לי
           </div>
         </motion.div>
         
         {/* מאזן */}
         <motion.div 
-          className="bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
+          className="bg-white rounded-xl p-4 sm:p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
           <div className="absolute top-0 right-0 left-0 h-0.5 bg-gradient-to-r from-blue-200 via-indigo-200 to-purple-200"></div>
           
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-base font-semibold text-gray-800">מאזן כולל</h3>
+          <div className="flex justify-between items-center mb-2 sm:mb-3">
+            <h3 className="text-sm sm:text-base font-semibold text-gray-800">מאזן כולל</h3>
             <motion.div 
-              whileHover={{ rotate: 15, scale: 1.1 }}
-              className={`w-9 h-9 flex items-center justify-center ${summary.balance >= 0 ? 'bg-blue-500' : 'bg-yellow-500'} rounded-full text-white shadow-sm`}
+              whileHover={{ rotate: isMobile ? 5 : 15, scale: isMobile ? 1.05 : 1.1 }}
+              className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center ${summary.balance >= 0 ? 'bg-blue-500' : 'bg-yellow-500'} rounded-full text-white shadow-sm`}
             >
-              <IoCashOutline className="text-lg" />
+              <IoCashOutline className="text-base sm:text-lg" />
             </motion.div>
           </div>
           
@@ -236,256 +253,270 @@ const FinanceDebts = () => {
               key={summary.balance}
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`text-3xl font-bold ${summary.balance >= 0 ? 'text-blue-600' : 'text-yellow-600'}`}
+              className={`text-xl sm:text-3xl font-bold ${summary.balance >= 0 ? 'text-blue-600' : 'text-yellow-600'}`}
             >
               {summary.balance.toLocaleString()}
             </motion.span>
-            <span className="text-lg text-gray-500 mr-1">₪</span>
+            <span className="text-base sm:text-lg text-gray-500 mr-1">₪</span>
             
             {summary.balance > 0 && (
               <motion.div 
                 animate={{ rotate: [0, 10, 0] }}
                 transition={{ duration: 1.5, repeat: Infinity, repeatType: "reverse" }}
-                className="mr-2 text-yellow-500 text-xl"
+                className="mr-1 sm:mr-2 text-lg sm:text-xl text-yellow-500"
               >
                 <IoSparkles />
               </motion.div>
             )}
           </div>
           
-          <div className="mt-3 text-xs text-gray-500">
+          <div className="mt-1 sm:mt-3 text-2xs sm:text-xs text-gray-500">
             יתרה לאחר קיזוז
           </div>
         </motion.div>
       </div>
       
-      {/* מסנן */}
-      <motion.div 
-        className="bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
+      {/* פילטרים והוספה */}
+      <motion.div
+        className="bg-white rounded-xl p-4 sm:p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.4 }}
+        transition={{ duration: 0.4, delay: 0.3 }}
       >
         <div className="absolute top-0 right-0 left-0 h-0.5 bg-gradient-to-r from-blue-200 via-indigo-200 to-purple-200"></div>
         
-        <div className="flex space-x-2 space-x-reverse justify-between">
-          <div className="flex space-x-2 space-x-reverse">
-            <motion.button
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              className={`px-4 py-2 rounded-lg ${filterType === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-              onClick={() => setFilterType('all')}
-            >
-              הכל
-            </motion.button>
-            
-            <motion.button
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              className={`px-4 py-2 rounded-lg ${filterType === 'debt' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-              onClick={() => setFilterType('debt')}
-            >
-              חובות
-            </motion.button>
-            
-            <motion.button
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              className={`px-4 py-2 rounded-lg ${filterType === 'loan' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-              onClick={() => setFilterType('loan')}
-            >
-              הלוואות
-            </motion.button>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
+          <div className="w-full sm:w-auto">
+            <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2 sm:mb-0 flex items-center">
+              <HiUserCircle className="mr-1 sm:mr-2 text-indigo-500" />
+              <span>חובות והלוואות</span>
+              <span className="mr-2 text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">
+                {sortedDebtLoans.length}
+              </span>
+            </h3>
           </div>
           
-          <div className="flex items-center">
+          <div className="flex flex-col xs:flex-row space-y-2 xs:space-y-0 space-x-0 xs:space-x-2 xs:space-x-reverse w-full sm:w-auto">
+            <div className="flex space-x-1 sm:space-x-2 space-x-reverse flex-1 xs:flex-auto">
+              <motion.button
+                whileHover={{ y: isMobile ? -1 : -2 }}
+                whileTap={{ scale: 0.95 }}
+                className={`py-1.5 sm:py-2 rounded-lg flex-1 text-xs sm:text-sm ${filterType === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                onClick={() => setFilterType('all')}
+              >
+                הכל
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ y: isMobile ? -1 : -2 }}
+                whileTap={{ scale: 0.95 }}
+                className={`py-1.5 sm:py-2 rounded-lg flex-1 text-xs sm:text-sm ${filterType === 'debt' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                onClick={() => setFilterType('debt')}
+              >
+                חובות
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ y: isMobile ? -1 : -2 }}
+                whileTap={{ scale: 0.95 }}
+                className={`py-1.5 sm:py-2 rounded-lg flex-1 text-xs sm:text-sm ${filterType === 'loan' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                onClick={() => setFilterType('loan')}
+              >
+                הלוואות
+              </motion.button>
+            </div>
+            
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={openAddModal}
-              className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow-sm hover:bg-purple-700"
+              className="flex items-center justify-center xs:justify-start px-3 py-1.5 sm:py-2 bg-indigo-600 text-white rounded-lg shadow-sm hover:bg-indigo-700 text-xs sm:text-sm"
             >
-              <FiPlus className="ml-2" />
-              הוסף חדש
+              <FiPlus className="ml-1 sm:ml-2" />
+              <span className="whitespace-nowrap">הוספת חוב/הלוואה</span>
             </motion.button>
           </div>
         </div>
       </motion.div>
       
       {/* רשימת חובות והלוואות */}
-      <motion.div 
-        className="relative"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.5 }}
-      >
+      <div className="space-y-3 sm:space-y-4">
         {sortedDebtLoans.length === 0 ? (
-          <div className="text-center py-10 text-gray-500 bg-white rounded-xl border border-dashed border-gray-300">
-            אין {filterType === 'all' ? 'חובות והלוואות' : filterType === 'debt' ? 'חובות' : 'הלוואות'} להצגה
+          <div className="bg-white rounded-xl p-8 shadow-md text-center text-gray-500">
+            לא נמצאו חובות והלוואות
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <AnimatePresence>
-              {sortedDebtLoans.map((item, index) => {
-                const paymentMethod = item.paymentMethodId ? getPaymentMethodById(item.paymentMethodId) : undefined;
-                const daysLeft = item.dueDate ? getDaysLeft(item.dueDate) : null;
-                
-                return (
-                  <motion.div 
-                    key={item.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    whileHover={{ scale: 1.02, y: -5 }}
-                    className={`bg-white rounded-lg p-4 shadow-sm hover:shadow-md border transition-all cursor-pointer ${
-                      item.isPaid
-                        ? 'border-gray-200 border-r-4 border-r-gray-300 bg-gray-50/50'
-                        : item.isDebt
-                          ? 'border-red-100 border-r-4 border-r-red-500 bg-red-50/30'
-                          : 'border-green-100 border-r-4 border-r-green-500 bg-green-50/30'
-                    }`}
-                    onClick={() => openEditModal(item)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center mb-2">
-                          <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center mr-2">
-                            <HiUserCircle className={`text-2xl ${
-                              item.isPaid ? 'text-gray-400' : item.isDebt ? 'text-red-500' : 'text-green-500'
-                            }`} />
+          <AnimatePresence>
+            {sortedDebtLoans.map((item, index) => {
+              const paymentMethod = item.paymentMethodId ? getPaymentMethodById(item.paymentMethodId) : null;
+              const daysLeft = item.dueDate ? getDaysLeft(item.dueDate) : null;
+              const isItemOverdue = item.dueDate ? isOverdue(item.dueDate) : false;
+              
+              return (
+                <motion.div 
+                  key={item.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ 
+                    opacity: 1, 
+                    y: 0,
+                    transition: { duration: 0.4, delay: index * 0.05 } 
+                  }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className={`bg-white rounded-xl p-3 sm:p-4 shadow-md hover:shadow-lg border border-gray-100 transition-all duration-300 ${
+                    item.isPaid ? 'opacity-70' : ''
+                  }`}
+                >
+                  <div className={`rounded-lg overflow-hidden relative ${
+                    item.isPaid 
+                      ? 'bg-gray-50'
+                      : item.isDebt 
+                        ? 'border-r-4 border-r-red-500 bg-red-50/30'
+                        : 'border-r-4 border-r-green-500 bg-green-50/30'
+                  }`}>
+                    <div className="p-3 sm:p-4">
+                      <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-2 sm:mb-3 gap-2 sm:gap-0">
+                        <div className="flex items-center">
+                          <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mr-2 sm:mr-3 ${
+                            item.isPaid
+                              ? 'bg-gray-200 text-gray-600'
+                              : item.isDebt 
+                                ? 'bg-red-500/10 text-red-600'
+                                : 'bg-green-500/10 text-green-600'
+                          }`}>
+                            {item.isPaid 
+                              ? <FiCheck className="text-lg sm:text-xl" />
+                              : item.isDebt 
+                                ? <IoArrowDown className="text-lg sm:text-xl" />
+                                : <IoArrowUp className="text-lg sm:text-xl" />
+                            }
                           </div>
+                          
                           <div>
-                            <h3 className={`font-semibold ${item.isPaid ? 'text-gray-500' : 'text-gray-800'}`}>
+                            <h4 className={`font-semibold text-base sm:text-lg ${
+                              item.isPaid ? 'text-gray-500' : 'text-gray-800'
+                            }`}>
                               {item.personName}
-                            </h3>
-                            <div className="flex space-x-1 space-x-reverse">
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            </h4>
+                            
+                            <div className="flex flex-wrap items-center mt-0.5 gap-1 sm:gap-2">
+                              <span className={`inline-flex items-center text-xs sm:text-sm ${
                                 item.isPaid
-                                  ? 'bg-gray-200 text-gray-700'
+                                  ? 'text-gray-500'
                                   : item.isDebt
-                                    ? 'bg-red-100 text-red-600'
-                                    : 'bg-green-100 text-green-600'
+                                    ? 'text-red-600 font-medium'
+                                    : 'text-green-600 font-medium'
                               }`}>
-                                {item.isPaid ? 'שולם' : item.isDebt ? 'אני חייב' : 'חייבים לי'}
+                                {item.isDebt ? 'אני חייב' : 'חייבים לי'}
                               </span>
                               
-                              {!item.isPaid && item.dueDate && daysLeft !== null && (
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                  daysLeft < 0 
-                                    ? 'bg-red-100 text-red-600' 
-                                    : daysLeft < 7 
-                                      ? 'bg-yellow-100 text-yellow-600'
-                                      : 'bg-blue-100 text-blue-600'
+                              {item.dueDate && (
+                                <span className={`text-2xs sm:text-xs flex items-center ${
+                                  item.isPaid
+                                    ? 'text-gray-500'
+                                    : isItemOverdue && !item.isPaid
+                                      ? 'text-red-500 font-medium'
+                                      : 'text-blue-600'
                                 }`}>
-                                  {daysLeft < 0 
-                                    ? `באיחור של ${Math.abs(daysLeft)} ימים` 
-                                    : daysLeft === 0 
-                                      ? 'היום' 
-                                      : `נותרו ${daysLeft} ימים`}
+                                  <FiCalendar className="ml-1" />
+                                  {formatDate(item.dueDate)}
+                                  
+                                  {!item.isPaid && daysLeft !== null && (
+                                    <span className={`mr-1 px-1 py-0.5 rounded-full text-2xs ${
+                                      isItemOverdue
+                                        ? 'bg-red-100 text-red-600'
+                                        : 'bg-blue-100 text-blue-600'
+                                    }`}>
+                                      {isItemOverdue
+                                        ? `פיגור ${Math.abs(daysLeft)} ימים`
+                                        : `בעוד ${daysLeft} ימים`
+                                      }
+                                    </span>
+                                  )}
                                 </span>
                               )}
                             </div>
                           </div>
                         </div>
-                      </div>
-                      
-                      <div className="flex flex-col items-end">
-                        <div className={`text-base font-bold mb-1 ${
-                          item.isPaid 
-                            ? 'text-gray-500' 
-                            : item.isDebt 
-                              ? 'text-red-600' 
-                              : 'text-green-600'
-                        }`}>
-                          {item.amount.toLocaleString()} ₪
-                        </div>
                         
-                        <div className="flex gap-1">
-                          {!item.isPaid && (
+                        <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto">
+                          <div className="flex flex-col items-end">
+                            <span className={`text-lg sm:text-xl font-bold ${
+                              item.isPaid
+                                ? 'text-gray-500'
+                                : item.isDebt
+                                  ? 'text-red-600'
+                                  : 'text-green-600'
+                            }`}>
+                              {item.amount.toLocaleString()} ₪
+                            </span>
+                            
+                            {paymentMethod && (
+                              <span className="mt-0.5 text-2xs sm:text-xs text-gray-500 flex items-center">
+                                <span style={{ color: paymentMethod.color }}>{paymentMethod.icon}</span>
+                                <span className="mr-1">{paymentMethod.name}</span>
+                              </span>
+                            )}
+                            
+                            {item.affectsBalance && (
+                              <span className="mt-0.5 text-2xs sm:text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full shadow-sm">
+                                משפיע על יתרה
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="flex sm:flex-col items-center gap-1 sm:gap-2 mr-3 sm:mr-0 sm:ml-3">
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleTogglePaidStatus(item.id, item.isPaid);
-                              }}
-                              className="bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full p-1.5"
-                              title="סמן כשולם"
+                              onClick={() => handleTogglePaidStatus(item.id, item.isPaid)}
+                              className={`p-1.5 sm:p-2 rounded-full ${
+                                item.isPaid
+                                  ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                  : 'bg-green-100 text-green-600 hover:bg-green-200'
+                              }`}
+                              title={item.isPaid ? 'סמן כלא שולם' : 'סמן כשולם'}
                             >
-                              <FiCheck className="text-sm" />
+                              {item.isPaid ? <FiX size={16} /> : <FiCheck size={16} />}
                             </motion.button>
-                          )}
-                          
-                          {item.isPaid && (
+                            
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleTogglePaidStatus(item.id, item.isPaid);
-                              }}
-                              className="bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full p-1.5"
-                              title="סמן כלא שולם"
+                              onClick={() => openEditModal(item)}
+                              className="p-1.5 sm:p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200"
+                              title="ערוך"
                             >
-                              <FiX className="text-sm" />
+                              <FiEdit size={16} />
                             </motion.button>
-                          )}
-                          
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteDebtLoan(item.id);
-                            }}
-                            className="bg-red-50 hover:bg-red-100 text-red-600 rounded-full p-1.5"
-                            title="מחק לצמיתות"
-                          >
-                            <FiTrash2 className="text-sm" />
-                          </motion.button>
+                            
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => handleDeleteDebtLoan(item.id)}
+                              className="p-1.5 sm:p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200"
+                              title="מחק"
+                            >
+                              <FiTrash2 size={16} />
+                            </motion.button>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-3 pt-3 border-t border-gray-100 text-sm">
-                      <div className="flex flex-wrap gap-2">
-                        {item.dueDate && (
-                          <div className="flex items-center bg-gray-50 px-2 py-1 rounded-md">
-                            <FiCalendar className={`ml-1 ${
-                              !item.isPaid && isOverdue(item.dueDate) ? 'text-red-500' : 'text-gray-400'
-                            }`} />
-                            <span className={!item.isPaid && isOverdue(item.dueDate) ? 'text-red-600 font-medium' : 'text-gray-600'}>
-                              {formatDate(item.dueDate)}
-                            </span>
-                          </div>
-                        )}
-                        
-                        {paymentMethod && (
-                          <div className="flex items-center bg-gray-50 px-2 py-1 rounded-md">
-                            <span className="flex items-center text-gray-600">
-                              <span style={{ color: paymentMethod.color }} className="ml-1">{paymentMethod.icon}</span>
-                              {paymentMethod.name}
-                            </span>
-                          </div>
-                        )}
                       </div>
                       
                       {item.notes && (
-                        <div className="mt-2 text-gray-600 bg-gray-50 p-2 rounded-md line-clamp-2">
+                        <div className="mt-2 text-xs sm:text-sm text-gray-600 bg-gray-50 p-2 rounded-md">
                           {item.notes}
                         </div>
                       )}
                     </div>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         )}
-      </motion.div>
+      </div>
       
-      {/* מודל להוספה/עריכה */}
+      {/* מודל הוספה/עריכה */}
       {isModalOpen && (
         <DebtLoanModal
           isOpen={isModalOpen}

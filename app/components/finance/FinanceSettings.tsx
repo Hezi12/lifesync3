@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FiPlus, FiEdit, FiTrash2, FiSave, FiX, FiSettings, FiCreditCard, FiTag, FiDatabase, FiTool, FiCheck } from 'react-icons/fi';
 import { IoWallet, IoColorPalette, IoSwapVertical, IoSave, IoCloudUpload, IoCloudDownload, IoTrash } from 'react-icons/io5';
 import { PaymentMethod, FinancialCategory } from '../../types';
@@ -47,6 +47,23 @@ const FinanceSettings = () => {
   
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // זיהוי גודל המסך
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // בדיקה ראשונית
+    checkIfMobile();
+    
+    // האזנה לשינויים בגודל המסך
+    window.addEventListener('resize', checkIfMobile);
+    
+    // ניקוי
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
   
   // עריכת שיטת תשלום
   const startEditingPaymentMethod = (method: PaymentMethod) => {
@@ -238,6 +255,69 @@ const FinanceSettings = () => {
   
   return (
     <div className="space-y-6">
+      {/* כותרת וכפתורי ניווט */}
+      <motion.div 
+        className="bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100 overflow-hidden"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div className="absolute top-0 right-0 left-0 h-0.5 bg-gradient-to-r from-blue-200 via-indigo-200 to-purple-200"></div>
+        
+        <div className="flex items-center mb-5">
+          <motion.div 
+            whileHover={{ rotate: isMobile ? 5 : 15, scale: isMobile ? 1.05 : 1.1 }}
+            className="w-9 h-9 flex items-center justify-center bg-indigo-500 rounded-full text-white shadow-sm mr-3"
+          >
+            <FiSettings className="text-xl" />
+          </motion.div>
+          <h2 className="text-xl font-bold text-gray-800">הגדרות פיננסיות</h2>
+        </div>
+        
+        <div className={`flex ${isMobile ? 'flex-col space-y-2' : 'space-x-2 space-x-reverse'} text-sm`}>
+          <motion.button
+            whileHover={{ y: isMobile ? -1 : -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setActiveTab('paymentMethods')}
+            className={`flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg ${isMobile ? 'justify-center' : 'flex-1'} ${
+              activeTab === 'paymentMethods' 
+                ? 'bg-indigo-600 text-white' 
+                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <IoWallet className="ml-1 sm:ml-2" />
+            <span className="text-xs sm:text-sm">אמצעי תשלום</span>
+          </motion.button>
+          
+          <motion.button
+            whileHover={{ y: isMobile ? -1 : -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setActiveTab('categories')}
+            className={`flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg ${isMobile ? 'justify-center' : 'flex-1'} ${
+              activeTab === 'categories' 
+                ? 'bg-purple-600 text-white' 
+                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <FiTag className="ml-1 sm:ml-2" />
+            <span className="text-xs sm:text-sm">קטגוריות</span>
+          </motion.button>
+          
+          <motion.button
+            whileHover={{ y: isMobile ? -1 : -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setActiveTab('backup')}
+            className={`flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg ${isMobile ? 'justify-center' : 'flex-1'} ${
+              activeTab === 'backup' 
+                ? 'bg-green-600 text-white' 
+                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <FiDatabase className="ml-1 sm:ml-2" />
+            <span className="text-xs sm:text-sm">גיבוי ושחזור</span>
+          </motion.button>
+        </div>
+      </motion.div>
+      
       {/* הודעות הצלחה ושגיאה */}
       <AnimatePresence>
         {successMessage && (
@@ -269,60 +349,6 @@ const FinanceSettings = () => {
         )}
       </AnimatePresence>
       
-      {/* טאבים */}
-      <motion.div 
-        className="bg-white rounded-xl p-1 shadow-md transition-all duration-300 relative border border-gray-100 overflow-hidden"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-      >
-        <div className="absolute top-0 right-0 left-0 h-0.5 bg-gradient-to-r from-indigo-200 via-purple-200 to-pink-200"></div>
-        
-        <div className="flex space-x-1 space-x-reverse p-1">
-          <motion.button
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setActiveTab('paymentMethods')}
-            className={`flex items-center px-4 py-2 rounded-lg flex-1 ${
-              activeTab === 'paymentMethods' 
-                ? 'bg-indigo-600 text-white' 
-                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <IoWallet className="ml-2" />
-            אמצעי תשלום
-          </motion.button>
-          
-          <motion.button
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setActiveTab('categories')}
-            className={`flex items-center px-4 py-2 rounded-lg flex-1 ${
-              activeTab === 'categories' 
-                ? 'bg-purple-600 text-white' 
-                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <FiTag className="ml-2" />
-            קטגוריות
-          </motion.button>
-          
-          <motion.button
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setActiveTab('backup')}
-            className={`flex items-center px-4 py-2 rounded-lg flex-1 ${
-              activeTab === 'backup' 
-                ? 'bg-green-600 text-white' 
-                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <FiDatabase className="ml-2" />
-            גיבוי ושחזור
-          </motion.button>
-        </div>
-      </motion.div>
-      
       {/* תוכן לפי טאב */}
       <AnimatePresence mode="wait">
         {activeTab === 'backup' ? (
@@ -336,14 +362,14 @@ const FinanceSettings = () => {
             <FinanceBackup />
           </motion.div>
         ) : activeTab === 'paymentMethods' ? (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium">אמצעי תשלום</h3>
+              <h3 className="text-base sm:text-lg font-medium">אמצעי תשלום</h3>
               
               {!isEditingPaymentMethod && (
                 <button
                   onClick={() => setIsEditingPaymentMethod(true)}
-                  className="btn-primary flex items-center"
+                  className="btn-primary flex items-center text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-1.5"
                 >
                   <FiPlus className="ml-1" />
                   חדש
@@ -353,31 +379,31 @@ const FinanceSettings = () => {
             
             {/* טופס עריכה/הוספה */}
             {isEditingPaymentMethod && (
-              <div className="card p-4 bg-gray-50 space-y-4">
-                <h4 className="font-medium">
+              <div className="card p-3 sm:p-4 bg-gray-50 space-y-3 sm:space-y-4">
+                <h4 className="font-medium text-sm sm:text-base">
                   {editingPaymentMethodId ? 'עריכת אמצעי תשלום' : 'הוספת אמצעי תשלום חדש'}
                 </h4>
               
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">שם</label>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">שם</label>
                     <input
                       type="text"
                       value={newPaymentMethod.name}
                       onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, name: e.target.value })}
-                      className="w-full p-2 border rounded-md"
+                      className="w-full p-1.5 sm:p-2 border rounded-md text-sm"
                       placeholder="לדוגמה: מזומן, אשראי, PayPal"
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">אייקון</label>
-                    <div className="grid grid-cols-10 gap-2 mb-2 max-h-40 overflow-y-auto p-2 border rounded-md">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">אייקון</label>
+                    <div className="grid grid-cols-8 sm:grid-cols-10 gap-1 sm:gap-2 mb-2 max-h-32 sm:max-h-40 overflow-y-auto p-1.5 sm:p-2 border rounded-md">
                       {popularIcons.map((icon) => (
                         <button
                           key={icon}
                           type="button"
-                          className={`w-8 h-8 flex items-center justify-center rounded-md ${
+                          className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-md ${
                             newPaymentMethod.icon === icon ? 'bg-primary-100 border-2 border-primary-500' : 'bg-white border border-gray-300'
                           }`}
                           onClick={() => setNewPaymentMethod({ ...newPaymentMethod, icon })}
@@ -390,20 +416,20 @@ const FinanceSettings = () => {
                       type="text"
                       value={newPaymentMethod.icon}
                       onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, icon: e.target.value })}
-                      className="w-full p-2 border rounded-md"
+                      className="w-full p-1.5 sm:p-2 border rounded-md text-sm"
                       placeholder="אמוג'י"
                       maxLength={8}
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">צבע</label>
-                    <div className="grid grid-cols-10 gap-2 mb-2 max-h-40 overflow-y-auto p-2 border rounded-md">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">צבע</label>
+                    <div className="grid grid-cols-8 sm:grid-cols-10 gap-1 sm:gap-2 mb-2 max-h-32 sm:max-h-40 overflow-y-auto p-1.5 sm:p-2 border rounded-md">
                       {popularColors.map((color) => (
                         <button
                           key={color}
                           type="button"
-                          className={`w-8 h-8 rounded-md ${
+                          className={`w-6 h-6 sm:w-8 sm:h-8 rounded-md ${
                             newPaymentMethod.color === color ? 'ring-2 ring-primary-500' : ''
                           }`}
                           style={{ backgroundColor: color }}
@@ -415,18 +441,19 @@ const FinanceSettings = () => {
                       type="color"
                       value={newPaymentMethod.color}
                       onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, color: e.target.value })}
-                      className="w-full p-1 h-10 border rounded-md"
+                      className="w-full p-1 h-8 sm:h-10 border rounded-md"
                     />
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                         יתרה התחלתית
-                        <span className="mr-1 text-xs text-gray-500">(ניתן להזין גם ערכים שליליים)</span>
+                        <span className="mr-1 text-2xs sm:text-xs text-gray-500">(ניתן להזין גם ערכים שליליים)</span>
                       </label>
                       <input
                         type="number"
+                        inputMode="decimal"
                         value={newPaymentMethod.initialBalance}
                         onChange={(e) => {
                           const value = parseFloat(e.target.value);
@@ -438,7 +465,7 @@ const FinanceSettings = () => {
                           });
                         }}
                         step="any"
-                        className="w-full p-2 border rounded-md"
+                        className="w-full p-1.5 sm:p-2 border rounded-md text-sm"
                         placeholder="0"
                       />
                     </div>
@@ -446,24 +473,24 @@ const FinanceSettings = () => {
                 </div>
                 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                     מילות מפתח לזיהוי אוטומטי
-                    <span className="mr-1 text-xs text-gray-500">(לדוגמה: 4 ספרות אחרונות של כרטיס אשראי)</span>
+                    <span className="mr-1 text-2xs sm:text-xs text-gray-500">(לדוגמה: 4 ספרות אחרונות של כרטיס אשראי)</span>
                   </label>
                   
-                  <div className="flex flex-wrap gap-2 mb-2">
+                  <div className="flex flex-wrap gap-1 sm:gap-2 mb-2">
                     {(newPaymentMethod.keywords || []).map((keyword, index) => (
                       <div 
                         key={index}
-                        className="px-2 py-1 bg-primary-100 text-primary-800 rounded-md flex items-center"
+                        className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-primary-100 text-primary-800 rounded-md flex items-center"
                       >
-                        <span>{keyword}</span>
+                        <span className="text-xs sm:text-sm">{keyword}</span>
                         <button 
                           type="button"
-                          className="ml-1 text-primary-600 hover:text-primary-800"
+                          className="ml-0.5 sm:ml-1 text-primary-600 hover:text-primary-800"
                           onClick={() => removePaymentMethodKeyword(keyword)}
                         >
-                          <FiX size={16} />
+                          <FiX size={isMobile ? 14 : 16} />
                         </button>
                       </div>
                     ))}
@@ -474,7 +501,7 @@ const FinanceSettings = () => {
                       type="text"
                       id="newPaymentMethodKeyword"
                       placeholder="הוסף מילת מפתח ולחץ על הוסף"
-                      className="w-full p-2 border rounded-md rounded-l-none"
+                      className="w-full p-1.5 sm:p-2 border rounded-md rounded-l-none text-sm"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();

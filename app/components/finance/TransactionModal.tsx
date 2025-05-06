@@ -31,6 +31,23 @@ const TransactionModal = ({
     paymentMethodId: '',
     type: 'expense'
   });
+  const [isMobile, setIsMobile] = useState(false);
+
+  // זיהוי גודל המסך
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // בדיקה ראשונית
+    checkIfMobile();
+    
+    // האזנה לשינויים בגודל המסך
+    window.addEventListener('resize', checkIfMobile);
+    
+    // ניקוי
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
   
   // איתחול הטופס עם נתוני העסקה הקיימת, אם יש
   useEffect(() => {
@@ -83,28 +100,30 @@ const TransactionModal = ({
   const filteredCategories = categories.filter(c => c.type === formData.type);
   
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex justify-center items-center p-4">
-      <div className="bg-white rounded-lg w-full max-w-lg">
-        <div className="flex justify-between items-center p-4 border-b">
-          <h2 className="text-xl font-medium">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex justify-center items-center p-2 sm:p-4">
+      <div className="bg-white rounded-lg w-full max-w-md sm:max-w-lg">
+        <div className="flex justify-between items-center p-3 sm:p-4 border-b">
+          <h2 className="text-lg sm:text-xl font-medium">
             {transaction ? 'עריכת עסקה' : 'הוספת עסקה חדשה'}
           </h2>
           <button
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 p-1"
             onClick={onClose}
+            aria-label="סגור"
           >
-            <FiX size={24} />
+            <FiX size={isMobile ? 20 : 24} />
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <div className="p-3 sm:p-4 max-h-[calc(100vh-150px)] overflow-y-auto">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
           {/* סוג עסקה: הכנסה או הוצאה */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">סוג עסקה:</label>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">סוג עסקה:</label>
             <div className="flex">
               <button
                 type="button"
-                className={`flex-1 py-2 border-l ${
+                  className={`flex-1 py-1.5 sm:py-2 border-l text-xs sm:text-sm ${
                   formData.type === 'income'
                     ? 'bg-green-100 text-green-800 border-green-300'
                     : 'bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200'
@@ -116,7 +135,7 @@ const TransactionModal = ({
               
               <button
                 type="button"
-                className={`flex-1 py-2 ${
+                  className={`flex-1 py-1.5 sm:py-2 text-xs sm:text-sm ${
                   formData.type === 'expense'
                     ? 'bg-red-100 text-red-800 border-red-300'
                     : 'bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200'
@@ -130,27 +149,28 @@ const TransactionModal = ({
           
           {/* סכום */}
           <div>
-            <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="amount" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               סכום:
             </label>
             <div className="relative">
               <input
                 type="number"
                 id="amount"
+                  inputMode="decimal"
                 value={formData.amount}
                 onChange={(e) => handleChange('amount', Number(e.target.value))}
-                className="w-full p-2 border rounded-md pl-8"
+                  className="w-full p-1.5 sm:p-2 border rounded-md pl-7 sm:pl-8 text-sm"
                 min="0"
                 step="0.01"
                 required
               />
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2">₪</span>
+                <span className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-xs sm:text-sm">₪</span>
             </div>
           </div>
           
           {/* תיאור */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="description" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               תיאור:
             </label>
             <input
@@ -158,14 +178,14 @@ const TransactionModal = ({
               id="description"
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
-              className="w-full p-2 border rounded-md"
+                className="w-full p-1.5 sm:p-2 border rounded-md text-sm"
               required
             />
           </div>
           
           {/* תאריך */}
           <div>
-            <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="date" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               תאריך:
             </label>
             <input
@@ -173,21 +193,21 @@ const TransactionModal = ({
               id="date"
               value={formData.date.toISOString().split('T')[0]}
               onChange={(e) => handleChange('date', new Date(e.target.value))}
-              className="w-full p-2 border rounded-md"
+                className="w-full p-1.5 sm:p-2 border rounded-md text-sm"
               required
             />
           </div>
           
           {/* קטגוריה */}
           <div>
-            <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="categoryId" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               קטגוריה:
             </label>
             <select
               id="categoryId"
               value={formData.categoryId}
               onChange={(e) => handleChange('categoryId', e.target.value)}
-              className="w-full p-2 border rounded-md"
+                className="w-full p-1.5 sm:p-2 border rounded-md text-sm"
               required
             >
               <option value="" disabled>בחר קטגוריה</option>
@@ -199,7 +219,7 @@ const TransactionModal = ({
             </select>
             
             {filteredCategories.length === 0 && (
-              <p className="text-red-500 text-sm mt-1">
+                <p className="text-red-500 text-2xs sm:text-sm mt-1">
                 אין קטגוריות מסוג {formData.type === 'income' ? 'הכנסה' : 'הוצאה'}. אנא צור קטגוריה תחילה.
               </p>
             )}
@@ -207,14 +227,14 @@ const TransactionModal = ({
           
           {/* שיטת תשלום */}
           <div>
-            <label htmlFor="paymentMethodId" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="paymentMethodId" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               אמצעי תשלום:
             </label>
             <select
               id="paymentMethodId"
               value={formData.paymentMethodId}
               onChange={(e) => handleChange('paymentMethodId', e.target.value)}
-              className="w-full p-2 border rounded-md"
+                className="w-full p-1.5 sm:p-2 border rounded-md text-sm"
               required
             >
               <option value="" disabled>בחר אמצעי תשלום</option>
@@ -226,25 +246,25 @@ const TransactionModal = ({
             </select>
             
             {paymentMethods.length === 0 && (
-              <p className="text-red-500 text-sm mt-1">
+                <p className="text-red-500 text-2xs sm:text-sm mt-1">
                 אין אמצעי תשלום. אנא צור אמצעי תשלום תחילה.
               </p>
             )}
           </div>
           
           {/* כפתורי פעולה */}
-          <div className="flex justify-end space-x-2 space-x-reverse pt-4">
+            <div className="flex justify-end gap-2 pt-3 sm:pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-xs sm:text-sm"
             >
               ביטול
             </button>
             
             <button
               type="submit"
-              className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-xs sm:text-sm"
               disabled={
                 !formData.description || 
                 formData.amount <= 0 || 
@@ -256,6 +276,7 @@ const TransactionModal = ({
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );

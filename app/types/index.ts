@@ -133,6 +133,7 @@ export interface DebtLoan {
   paymentMethodId?: string;
   isDebt: boolean; // true = חוב (אני חייב), false = הלוואה (חייבים לי)
   isPaid: boolean;
+  affectsBalance: boolean; // האם משפיע על יתרת אמצעי התשלום
 }
 
 // התראה או תזכורת

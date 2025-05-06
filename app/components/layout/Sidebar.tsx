@@ -103,10 +103,10 @@ export default function Sidebar() {
   const MobileMenuButton = () => (
     <button
       onClick={() => setIsOpen(!isOpen)}
-      className="fixed top-4 right-4 z-50 p-2 rounded-full bg-white shadow-md text-primary-600"
+      className="fixed bottom-4 right-4 z-50 p-4 rounded-full bg-white shadow-xl text-primary-600 hover:bg-primary-50 transition-all"
       aria-label={isOpen ? "סגור תפריט" : "פתח תפריט"}
     >
-      {isOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+      {isOpen ? <FiX size={28} /> : <FiMenu size={28} />}
     </button>
   );
 

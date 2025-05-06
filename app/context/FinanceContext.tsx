@@ -568,56 +568,81 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // פונקציה חדשה לחישוב מחדש של היתרות
+  // פונקציה לחישוב מחדש של יתרות
   const recalculateBalances = () => {
     try {
-      console.group('חישוב מחדש של היתרות');
+      if (paymentMethods.length === 0) return;
       
-      // יצירת עותק של אמצעי התשלום עם איפוס מצב היתרה הנוכחית ליתרה ההתחלתית
-      const recalculatedMethods = paymentMethods.map(method => {
-        console.log(`איפוס ${method.name}: ${method.currentBalance} -> ${method.initialBalance}`);
-        return {
-          ...method,
-          currentBalance: method.initialBalance
-        };
+      // העתקת אמצעי התשלום לפני העדכון
+      const methodsCopy = [...paymentMethods];
+      
+      // איפוס כל היתרות לערכים ההתחלתיים
+      methodsCopy.forEach((method) => {
+        method.currentBalance = method.initialBalance;
       });
       
-      // חישוב מחדש של השפעת כל העסקאות על היתרות
-      console.log('מחשב מחדש לפי עסקאות:');
-      transactions.forEach((transaction, index) => {
-        const methodIndex = recalculatedMethods.findIndex(m => m.id === transaction.paymentMethodId);
-        if (methodIndex >= 0) {
-          const prevBalance = recalculatedMethods[methodIndex].currentBalance;
+      // חישוב השפעת העסקאות
+      for (const transaction of transactions) {
+        const methodIndex = methodsCopy.findIndex(m => m.id === transaction.paymentMethodId);
+        if (methodIndex === -1) continue;
           
           if (transaction.type === 'income') {
-            recalculatedMethods[methodIndex].currentBalance += transaction.amount;
-            console.log(`עסקה ${index+1}: ${transaction.description}, +${transaction.amount} ל-${recalculatedMethods[methodIndex].name} (${prevBalance} -> ${recalculatedMethods[methodIndex].currentBalance})`);
+          methodsCopy[methodIndex].currentBalance += transaction.amount;
           } else {
-            recalculatedMethods[methodIndex].currentBalance -= transaction.amount;
-            console.log(`עסקה ${index+1}: ${transaction.description}, -${transaction.amount} מ-${recalculatedMethods[methodIndex].name} (${prevBalance} -> ${recalculatedMethods[methodIndex].currentBalance})`);
-          }
-        } else {
-          console.warn(`עסקה ${index+1}: לא נמצא אמצעי תשלום עם ID: ${transaction.paymentMethodId}`);
+          methodsCopy[methodIndex].currentBalance -= transaction.amount;
         }
-      });
+      }
       
-      // סיכום סופי
-      recalculatedMethods.forEach(method => {
-        const originalMethod = paymentMethods.find(m => m.id === method.id);
-        const originalBalance = originalMethod?.currentBalance || 0;
-        console.log(`${method.name}: ${originalBalance} -> ${method.currentBalance}, שינוי: ${method.currentBalance - originalBalance}`);
-      });
+      // חישוב השפעת חובות והלוואות שמוגדרות להשפיע על היתרה
+      for (const debtLoan of debtLoans) {
+        // חובות והלוואות משפיעים רק אם:
+        // 1. הם מוגדרים להשפיע על היתרה (affectsBalance = true)
+        // 2. יש להם אמצעי תשלום מוגדר
+        // 3. הם לא שולמו עדיין
+        if (debtLoan.affectsBalance && debtLoan.paymentMethodId && !debtLoan.isPaid) {
+          const methodIndex = methodsCopy.findIndex(m => m.id === debtLoan.paymentMethodId);
+          if (methodIndex === -1) continue;
+          
+          if (debtLoan.isDebt) {
+            // אם זה חוב (אני חייב כסף) - המשמעות היא שקיבלתי כסף ולכן מגדילים את היתרה
+            methodsCopy[methodIndex].currentBalance += debtLoan.amount;
+        } else {
+            // אם זו הלוואה (מישהו חייב לי) - המשמעות היא שנתתי כסף ולכן מקטינים את היתרה
+            methodsCopy[methodIndex].currentBalance -= debtLoan.amount;
+          }
+        }
+      }
       
-      // עדכון אמצעי התשלום עם היתרות המחושבות מחדש
-      setPaymentMethods(recalculatedMethods);
-      localStorage.setItem('paymentMethods', JSON.stringify(recalculatedMethods));
+      // עדכון מצב היתרות
+      setPaymentMethods(methodsCopy);
       
-      // חישוב היתרה הכוללת ייעשה באופן אוטומטי בזכות ה-useEffect
+      // חישוב היתרה הכוללת
+      calculateTotalBalance();
       
-      console.groupEnd();
+      // שמירת הנתונים בLocalStorage
+      localStorage.setItem('paymentMethods', JSON.stringify(methodsCopy));
+      
+      // אם המשתמש מחובר והמכשיר מקוון, עדכון בFirestore
+      if (user && isOnline) {
+        methodsCopy.forEach(async (method) => {
+          try {
+            const methodRef = doc(db, `users/${user.uid}/paymentMethods/${method.id}`);
+            // עדכון רק השדות הרלוונטיים במקום האובייקט המלא
+            await updateDoc(methodRef, {
+              currentBalance: method.currentBalance,
+              updatedAt: new Date()
+            });
     } catch (error) {
-      console.error('שגיאה בחישוב מחדש של היתרות:', error);
-      console.groupEnd();
+            console.error(`שגיאה בעדכון אמצעי תשלום ${method.id}:`, error);
+            setPendingChanges(true);
+          }
+        });
+      } else if (user) {
+        // אם המשתמש מחובר אבל המכשיר לא מקוון, סימון שיש שינויים ממתינים
+        setPendingChanges(true);
+      }
+    } catch (error) {
+      console.error('שגיאה בחישוב מחדש של יתרות:', error);
     }
   };
 
@@ -896,27 +921,37 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   // חובות והלוואות
   const addDebtLoan = async (debtLoan: DebtLoan) => {
     try {
-      // אם אין מזהה, צור אחד
-      if (!debtLoan.id) {
-        debtLoan.id = uuidv4();
-      }
-      
-      // טיפול בערכים חסרים
-      const processedDebtLoan = {
-        ...debtLoan,
-        dueDate: debtLoan.dueDate || null,
-        notes: debtLoan.notes || '',
-        paymentMethodId: debtLoan.paymentMethodId || ''
-      };
-      
-      const newDebtLoans = [...debtLoans, processedDebtLoan];
+      const newDebtLoans = [...debtLoans, debtLoan];
       setDebtLoans(newDebtLoans);
+      
+      // שמירה ב-localStorage
       localStorage.setItem('debtLoans', JSON.stringify(newDebtLoans));
       
+      // אם החוב/הלוואה אמורים להשפיע על היתרה, חישוב מחדש של היתרות
+      if (debtLoan.affectsBalance && debtLoan.paymentMethodId && !debtLoan.isPaid) {
+        recalculateBalances();
+      }
+      
       if (user && isOnline) {
-        const debtLoansRef = collection(db, `users/${user.uid}/debtLoans`);
-        await setDoc(doc(debtLoansRef, processedDebtLoan.id), processedDebtLoan);
+        // שמירה ב-Firestore - שימוש ב-setDoc עם האובייקט
+        const debtLoanRef = doc(db, `users/${user.uid}/debtLoans/${debtLoan.id}`);
+        
+        // המרת האובייקט למבנה מתאים ל-Firestore
+        const firestoreDebtLoan = {
+          id: debtLoan.id,
+          personName: debtLoan.personName,
+          amount: debtLoan.amount,
+          dueDate: debtLoan.dueDate,
+        notes: debtLoan.notes || '',
+          paymentMethodId: debtLoan.paymentMethodId || '',
+          isDebt: debtLoan.isDebt,
+          isPaid: debtLoan.isPaid,
+          affectsBalance: debtLoan.affectsBalance
+        };
+        
+        await setDoc(debtLoanRef, firestoreDebtLoan);
       } else if (user) {
+        // סימון שיש שינויים ממתינים
         setPendingChanges(true);
       }
     } catch (error) {
@@ -927,25 +962,54 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
   const updateDebtLoan = async (debtLoan: DebtLoan) => {
     try {
-      // טיפול בערכים חסרים
-      const processedDebtLoan = {
-        ...debtLoan,
-        dueDate: debtLoan.dueDate || null,
-        notes: debtLoan.notes || '',
-        paymentMethodId: debtLoan.paymentMethodId || ''
-      };
+      // בדיקה האם החוב/הלוואה קיימים במערכת
+      const existingIndex = debtLoans.findIndex(dl => dl.id === debtLoan.id);
+      if (existingIndex === -1) {
+        throw new Error(`חוב/הלוואה עם מזהה ${debtLoan.id} לא נמצאו`);
+      }
       
-      const updatedDebtLoans = debtLoans.map(d => 
-        d.id === processedDebtLoan.id ? processedDebtLoan : d
-      );
+      // זיהוי אם חל שינוי שעשוי להשפיע על יתרות
+      const existingDebtLoan = debtLoans[existingIndex];
+      const balanceAffectingChanges = 
+        // בדיקה אם חל שינוי בהגדרות שמשפיעות על היתרה
+        existingDebtLoan.affectsBalance !== debtLoan.affectsBalance ||
+        existingDebtLoan.paymentMethodId !== debtLoan.paymentMethodId ||
+        existingDebtLoan.isPaid !== debtLoan.isPaid ||
+        existingDebtLoan.isDebt !== debtLoan.isDebt ||
+        existingDebtLoan.amount !== debtLoan.amount;
       
-      setDebtLoans(updatedDebtLoans);
-      localStorage.setItem('debtLoans', JSON.stringify(updatedDebtLoans));
+      // עדכון החוב/הלוואה
+      const newDebtLoans = [...debtLoans];
+      newDebtLoans[existingIndex] = debtLoan;
+      setDebtLoans(newDebtLoans);
+      
+      // שמירה ב-localStorage
+      localStorage.setItem('debtLoans', JSON.stringify(newDebtLoans));
+      
+      // אם חל שינוי שעשוי להשפיע על היתרות, חישוב מחדש של היתרות
+      if (balanceAffectingChanges) {
+        recalculateBalances();
+      }
       
       if (user && isOnline) {
-        const debtLoanRef = doc(db, `users/${user.uid}/debtLoans/${processedDebtLoan.id}`);
-        await updateDoc(debtLoanRef, { ...processedDebtLoan });
+        // שמירה ב-Firestore
+        const debtLoanRef = doc(db, `users/${user.uid}/debtLoans/${debtLoan.id}`);
+        
+        // המרת האובייקט למבנה מתאים ל-Firestore
+        const firestoreDebtLoan = {
+          personName: debtLoan.personName,
+          amount: debtLoan.amount,
+          dueDate: debtLoan.dueDate,
+          notes: debtLoan.notes || '',
+          paymentMethodId: debtLoan.paymentMethodId || '',
+          isDebt: debtLoan.isDebt,
+          isPaid: debtLoan.isPaid,
+          affectsBalance: debtLoan.affectsBalance
+        };
+        
+        await updateDoc(debtLoanRef, firestoreDebtLoan);
       } else if (user) {
+        // סימון שיש שינויים ממתינים
         setPendingChanges(true);
       }
     } catch (error) {
@@ -956,14 +1020,28 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
   const deleteDebtLoan = async (id: string) => {
     try {
-      const newDebtLoans = debtLoans.filter(d => d.id !== id);
+      // מציאת החוב/הלוואה לפני המחיקה כדי לבדוק אם משפיע על היתרה
+      const debtLoanToDelete = debtLoans.find(dl => dl.id === id);
+      if (!debtLoanToDelete) return;
+
+      // מחיקת החוב/הלוואה מהמערך
+      const newDebtLoans = debtLoans.filter(dl => dl.id !== id);
       setDebtLoans(newDebtLoans);
+      
+      // עדכון ב-localStorage
       localStorage.setItem('debtLoans', JSON.stringify(newDebtLoans));
       
+      // אם החוב/הלוואה שנמחקו השפיעו על היתרה, חישוב מחדש של היתרות
+      if (debtLoanToDelete.affectsBalance && debtLoanToDelete.paymentMethodId && !debtLoanToDelete.isPaid) {
+        recalculateBalances();
+      }
+      
       if (user && isOnline) {
+        // מחיקה ב-Firestore
         const debtLoanRef = doc(db, `users/${user.uid}/debtLoans/${id}`);
         await deleteDoc(debtLoanRef);
       } else if (user) {
+        // סימון שיש שינויים ממתינים
         setPendingChanges(true);
       }
     } catch (error) {
@@ -974,14 +1052,30 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
   const toggleDebtLoanPaid = async (id: string, isPaid: boolean) => {
     try {
-      const debtLoan = debtLoans.find(d => d.id === id);
-      if (debtLoan) {
-        const updatedDebtLoan = { ...debtLoan, isPaid };
-        await updateDebtLoan(updatedDebtLoan);
+      const debtLoanIndex = debtLoans.findIndex(dl => dl.id === id);
+      if (debtLoanIndex === -1) return;
+      
+      const updatedDebtLoan = { ...debtLoans[debtLoanIndex], isPaid };
+      const newDebtLoans = [...debtLoans];
+      newDebtLoans[debtLoanIndex] = updatedDebtLoan;
+      
+      setDebtLoans(newDebtLoans);
+      
+      // אם החוב/הלוואה משפיעים על יתרה, יש לחשב מחדש את היתרות
+      if (updatedDebtLoan.affectsBalance && updatedDebtLoan.paymentMethodId) {
+        recalculateBalances();
+      }
+      
+      localStorage.setItem('debtLoans', JSON.stringify(newDebtLoans));
+      
+      if (user && isOnline) {
+        const debtLoanRef = doc(db, `users/${user.uid}/debtLoans/${id}`);
+        await updateDoc(debtLoanRef, { isPaid });
+      } else if (user) {
+        setPendingChanges(true);
       }
     } catch (error) {
       console.error('שגיאה בעדכון סטטוס תשלום:', error);
-      throw error;
     }
   };
 
