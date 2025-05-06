@@ -7,6 +7,7 @@ import { CalendarProvider } from './context/CalendarContext';
 import { DocumentsProvider } from './context/DocumentsContext';
 import { FinanceProvider } from './context/FinanceContext';
 import { AuthProvider } from './context/AuthContext';
+import { HealthProvider } from './context/HealthContext';
 import { useState, useEffect } from 'react';
 
 export default function RootLayout({
@@ -52,12 +53,14 @@ export default function RootLayout({
             <CalendarProvider>
               <DocumentsProvider>
                 <FinanceProvider>
-                  <div className="flex">
-                    <Sidebar />
-                    <main className={`flex-grow min-h-screen p-4 sm:p-6 ${isMobile ? 'pb-16' : 'mr-16'}`}>
-                      {children}
-                    </main>
-                  </div>
+                  <HealthProvider>
+                    <div className="flex">
+                      <Sidebar />
+                      <main className={`flex-grow min-h-screen p-4 sm:p-6 ${isMobile ? 'pb-16' : 'mr-16'}`}>
+                        {children}
+                      </main>
+                    </div>
+                  </HealthProvider>
                 </FinanceProvider>
               </DocumentsProvider>
             </CalendarProvider>

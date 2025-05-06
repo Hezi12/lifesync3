@@ -1,58 +1,50 @@
 'use client';
 
 import { useState } from 'react';
-import { FiActivity, FiTrendingUp } from 'react-icons/fi';
+import { HiOutlineScale, HiOutlineChartBar } from 'react-icons/hi';
 import WeightTracker from '../components/health/WeightTracker';
 import ActivityTracker from '../components/health/ActivityTracker';
-import AuthGuard from '../components/AuthGuard';
 
-type HealthView = 'weight' | 'activity';
-
-export default function HealthPage() {
-  const [selectedView, setSelectedView] = useState<HealthView>('weight');
-
-  const renderView = () => {
-    switch (selectedView) {
-      case 'weight':
-        return <WeightTracker />;
-      case 'activity':
-        return <ActivityTracker />;
-      default:
-        return <WeightTracker />;
-    }
-  };
-
+const HealthPage = () => {
+  const [activeTab, setActiveTab] = useState<'weight' | 'activity'>('weight');
+  
   return (
-    <AuthGuard>
-      <div className="flex flex-col">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">בריאות</h1>
+    <div className="container max-w-6xl mx-auto px-2 sm:px-4 py-3 sm:py-4">
+      <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6">בריאות וכושר</h1>
+      
+      <div className="bg-white rounded-lg shadow-md mb-4 sm:mb-6">
+        <div className="flex border-b overflow-x-auto no-scrollbar">
+          <button
+            onClick={() => setActiveTab('weight')}
+            className={`flex items-center px-4 sm:px-6 py-2 sm:py-3 text-sm font-medium transition-colors flex-1 justify-center sm:justify-start ${
+              activeTab === 'weight'
+                ? 'border-b-2 border-primary-500 text-primary-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <HiOutlineScale className="ml-1 sm:ml-2 flex-shrink-0" />
+            <span>מעקב משקל</span>
+          </button>
           
-          <div className="flex space-x-4 space-x-reverse">
-            <button
-              className={`px-4 py-2 rounded-md flex items-center ${
-                selectedView === 'weight' ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-              onClick={() => setSelectedView('weight')}
-            >
-              <FiTrendingUp className="ml-2" />
-              <span>משקל</span>
-            </button>
-            
-            <button
-              className={`px-4 py-2 rounded-md flex items-center ${
-                selectedView === 'activity' ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-              onClick={() => setSelectedView('activity')}
-            >
-              <FiActivity className="ml-2" />
-              <span>פעילות גופנית</span>
-            </button>
-          </div>
+          <button
+            onClick={() => setActiveTab('activity')}
+            className={`flex items-center px-4 sm:px-6 py-2 sm:py-3 text-sm font-medium transition-colors flex-1 justify-center sm:justify-start ${
+              activeTab === 'activity'
+                ? 'border-b-2 border-primary-500 text-primary-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <HiOutlineChartBar className="ml-1 sm:ml-2 flex-shrink-0" />
+            <span>פעילות גופנית</span>
+          </button>
         </div>
         
-        {renderView()}
+        <div className="p-2 sm:p-4">
+          {activeTab === 'weight' ? <WeightTracker /> : <ActivityTracker />}
+        </div>
       </div>
-    </AuthGuard>
+    </div>
   );
-} 
+};
+
+export default HealthPage; 

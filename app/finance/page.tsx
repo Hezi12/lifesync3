@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FiDollarSign, FiCreditCard, FiFileText, FiSettings, FiBarChart2, FiMenu, FiX } from 'react-icons/fi';
+import { IoSwapVertical } from 'react-icons/io5';
 import FinanceBalance from '../components/finance/FinanceBalance';
 import FinanceTransactions from '../components/finance/FinanceTransactions';
 import FinanceDebts from '../components/finance/FinanceDebts';
@@ -16,7 +17,7 @@ type FinanceView = 'balance' | 'transactions' | 'debts' | 'settings' | 'overview
 
 export default function FinancePage() {
   const [selectedView, setSelectedView] = useState<FinanceView>('balance');
-  const { isLoading, error, totalBalance, isOnline, pendingChanges } = useFinanceContext();
+  const { isLoading, error, totalBalance, isOnline, pendingChanges, recalculateBalances } = useFinanceContext();
   const [isMobile, setIsMobile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -144,19 +145,35 @@ export default function FinancePage() {
               <span>לא מקוון</span>
             </motion.div>
           )}
-          <motion.div 
-            whileHover={{ y: -2 }}
-            className="bg-primary-100 text-primary-800 px-3 py-1 rounded-md flex items-center text-sm md:text-base shadow-sm"
-          >
-            <FiDollarSign className="ml-1" />
-            <motion.span 
-              key={totalBalance}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="font-bold"
+          <motion.div className="flex items-center">
+            <motion.button
+              whileHover={{ scale: 1.1, rotate: 30 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                if (window.confirm('האם אתה בטוח שברצונך לחשב מחדש את כל היתרות?')) {
+                  recalculateBalances();
+                  alert('היתרות חושבו מחדש בהצלחה!');
+                }
+              }}
+              className="p-1 ml-1 text-amber-600 hover:text-amber-700 transition-all"
+              title="חשב מחדש יתרות"
             >
-              {totalBalance.toLocaleString()} ₪
-            </motion.span>
+              <IoSwapVertical size={20} />
+            </motion.button>
+            <motion.div 
+              whileHover={{ y: -2 }}
+              className="bg-primary-100 text-primary-800 px-3 py-1 rounded-md flex items-center text-sm md:text-base shadow-sm"
+            >
+              <FiDollarSign className="ml-1" />
+              <motion.span 
+                key={totalBalance}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="font-bold"
+              >
+                {totalBalance.toLocaleString()} ₪
+              </motion.span>
+            </motion.div>
           </motion.div>
         </div>
       </div>
@@ -253,6 +270,20 @@ export default function FinancePage() {
                 <span>שינויים בהמתנה</span>
               </div>
             )}
+            <motion.button
+              whileHover={{ scale: 1.05, rotate: 30 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                if (window.confirm('האם אתה בטוח שברצונך לחשב מחדש את כל היתרות?')) {
+                  recalculateBalances();
+                  alert('היתרות חושבו מחדש בהצלחה!');
+                }
+              }}
+              className="ml-2 text-amber-600 hover:text-amber-700 transition-all"
+              title="חשב מחדש יתרות"
+            >
+              <IoSwapVertical size={24} />
+            </motion.button>
             <div className="bg-primary-100 text-primary-800 px-3 py-1 rounded-md flex items-center">
               <FiDollarSign className="ml-1" />
               <span className="font-bold">{totalBalance.toLocaleString()} ₪</span>

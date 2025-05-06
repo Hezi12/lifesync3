@@ -1,12 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FiPlusCircle, FiEdit, FiTrash2, FiActivity, FiClock, FiMapPin } from 'react-icons/fi';
 import { PhysicalActivity } from '../../types';
+import { useHealthContext } from '../../context/HealthContext';
+import { motion } from 'framer-motion';
+import Modal from '../Modal';
 
 const ActivityTracker = () => {
-  const [activities, setActivities] = useState<PhysicalActivity[]>([]);
+  const { 
+    activities, 
+    addActivity, 
+    updateActivity, 
+    deleteActivity,
+    isLoading
+  } = useHealthContext();
+  
   const [isAddingActivity, setIsAddingActivity] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<PhysicalActivity | null>(null);
   
   // מצבים לטופס הוספת פעילות
   const [newActivityType, setNewActivityType] = useState('הליכון');
@@ -17,139 +28,18 @@ const ActivityTracker = () => {
   // הכנת רשימת סוגי הפעילויות
   const activityTypes = ['הליכון', 'ריצה', 'הליכה', 'שחייה', 'אופניים', 'כדורסל', 'אימון כוח', 'יוגה', 'אחר'];
   
-  // טעינת נתונים מ-localStorage
-  useEffect(() => {
-    const savedActivities = localStorage.getItem('activities');
-    if (savedActivities) {
-      try {
-        // המרת תאריכים ממחרוזות לאובייקטי Date
-        const parsedActivities = JSON.parse(savedActivities, (key, value) => {
-          if (key === 'date') {
-            return new Date(value);
-          }
-          return value;
-        });
-        
-        setActivities(parsedActivities);
-      } catch (error) {
-        console.error('שגיאה בטעינת פעילויות:', error);
-        createSampleActivities();
-      }
-    } else {
-      createSampleActivities();
-    }
-  }, []);
-  
-  // סנכרון עם אירועי הליכון מלוח השנה
-  useEffect(() => {
-    try {
-      // בדיקה אם קיימים אירועי לוח שנה בזיכרון המקומי
-      const eventsString = localStorage.getItem('calendarEvents');
-      if (!eventsString) return;
-      
-      const parsedEvents = JSON.parse(eventsString);
-      if (!Array.isArray(parsedEvents)) return;
-      
-      // פילטור אירועי הליכון בלבד
-      const treadmillEvents = parsedEvents.filter(event => 
-        event.isTreadmill === true && 
-        event.duration && 
-        (event.distance || event.speed)
-      );
-      
-      if (treadmillEvents.length === 0) return;
-      
-      // הפיכת אירועי לוח שנה לפעילויות
-      const treadmillActivities = treadmillEvents.map(event => {
-        // אם יש לנו מהירות ומשך ואין מרחק, נחשב את המרחק
-        let distance = event.distance;
-        let speed = event.speed;
-        const duration = event.duration;
-        
-        if (!distance && speed && duration) {
-          const durationInHours = duration / 60;
-          distance = parseFloat((durationInHours * speed).toFixed(1));
-        }
-        
-        if (!speed && distance && duration) {
-          const durationInHours = duration / 60;
-          speed = parseFloat((distance / durationInHours).toFixed(1));
-        }
-        
-        return {
-          id: `calendar-${event.id}`,
-          date: new Date(event.start),
-          type: 'הליכון',
-          duration: duration,
-          distance: distance || 0,
-          speed: speed || 0,
-          fromCalendar: true // סימון שהפעילות מגיעה מלוח השנה
-        };
-      });
-      
-      // בדיקה אם כבר יש לנו פעילויות מאירועי לוח שנה כדי למנוע כפילויות
-      const calendarIds = treadmillActivities.map(activity => activity.id);
-      const filteredActivities = activities.filter(activity => 
-        !activity.fromCalendar || !calendarIds.includes(activity.id)
-      );
-      
-      // מיזוג ומיון של הפעילויות
-      const mergedActivities = [...filteredActivities, ...treadmillActivities].sort(
-        (a, b) => a.date.getTime() - b.date.getTime()
-      );
-      
-      setActivities(mergedActivities);
-      localStorage.setItem('activities', JSON.stringify(mergedActivities));
-      
-    } catch (error) {
-      console.error('שגיאה בסנכרון אירועי הליכון:', error);
-    }
-  }, []);
-  
-  // שמירת פעילויות ב-localStorage בכל פעם שיש שינוי
-  useEffect(() => {
-    if (activities.length > 0) {
-      localStorage.setItem('activities', JSON.stringify(activities));
-    }
-  }, [activities]);
-  
-  // יצירת נתוני פעילות גופנית לדוגמה
-  const createSampleActivities = () => {
-    const sampleActivities: PhysicalActivity[] = [];
-    const today = new Date();
-    
-    // יצירת 10 פעילויות אחרונות לדוגמה
-    for (let i = 20; i >= 0; i -= 2) {
-      const date = new Date();
-      date.setDate(today.getDate() - i);
-      
-      // בחירת סוג פעילות רנדומלי
-      const types = ['הליכון', 'ריצה', 'הליכה', 'אופניים'];
-      const randomType = types[Math.floor(Math.random() * types.length)];
-      
-      // יצירת משך זמן ומרחק רנדומליים
-      const randomDuration = Math.floor(Math.random() * 30) + 15; // 15-45 דקות
-      const randomDistance = parseFloat(((randomDuration / 10) + Math.random()).toFixed(1)); // מרחק שיהיה הגיוני ביחס לזמן
-      
-      sampleActivities.push({
-        id: `activity-${i}`,
-        date: new Date(date),
-        type: randomType,
-        duration: randomDuration,
-        distance: randomDistance,
-        speed: randomDistance / (randomDuration / 60) // מהירות בקמ"ש
-      });
-    }
-    
-    // מיון לפי תאריך (מהישן לחדש)
-    sampleActivities.sort((a, b) => a.date.getTime() - b.date.getTime());
-    
-    setActivities(sampleActivities);
-    localStorage.setItem('activities', JSON.stringify(sampleActivities));
+  // פתיחת טופס עריכה
+  const openEditForm = (activity: PhysicalActivity) => {
+    setEditingActivity(activity);
+    setNewActivityType(activity.type);
+    setNewActivityDuration(activity.duration.toString());
+    setNewActivityDistance(activity.distance ? activity.distance.toString() : '');
+    setNewActivityDate(activity.date.toISOString().split('T')[0]);
+    setIsAddingActivity(true);
   };
   
   // הוספת פעילות גופנית חדשה
-  const addActivity = () => {
+  const handleAddActivity = () => {
     if (
       !newActivityType || 
       !newActivityDuration || 
@@ -170,36 +60,39 @@ const ActivityTracker = () => {
       speed = distance / (duration / 60); // מהירות בקמ"ש
     }
     
-    const newActivity: PhysicalActivity = {
-      id: Date.now().toString(),
-      date: new Date(newActivityDate),
-      type: newActivityType,
-      duration,
-      distance,
-      speed
-    };
-    
-    // מיון הפעילויות לפי תאריך (מהישן לחדש)
-    const updatedActivities = [...activities, newActivity].sort((a, b) => 
-      a.date.getTime() - b.date.getTime()
-    );
-    
-    setActivities(updatedActivities);
-    localStorage.setItem('activities', JSON.stringify(updatedActivities));
+    if (editingActivity) {
+      // עדכון פעילות קיימת
+      updateActivity({
+        ...editingActivity,
+        type: newActivityType,
+        duration,
+        distance,
+        speed,
+        date: new Date(newActivityDate)
+      });
+    } else {
+      // הוספת פעילות חדשה
+      addActivity({
+        date: new Date(newActivityDate),
+        type: newActivityType,
+        duration,
+        distance,
+        speed
+      });
+    }
     
     // איפוס הטופס
+    resetForm();
+  };
+  
+  // איפוס הטופס
+  const resetForm = () => {
     setNewActivityType('הליכון');
     setNewActivityDuration('');
     setNewActivityDistance('');
     setNewActivityDate(new Date().toISOString().split('T')[0]);
     setIsAddingActivity(false);
-  };
-  
-  // מחיקת פעילות - ישירות ללא אישור
-  const deleteActivity = (id: string) => {
-    const updatedActivities = activities.filter(activity => activity.id !== id);
-    setActivities(updatedActivities);
-    localStorage.setItem('activities', JSON.stringify(updatedActivities));
+    setEditingActivity(null);
   };
   
   // חישוב סטטיסטיקות
@@ -209,139 +102,322 @@ const ActivityTracker = () => {
         totalActivities: 0,
         totalDuration: 0,
         totalDistance: 0,
-        weeklyActivities: 0,
-        weeklyDuration: 0,
-        weeklyDistance: 0
+        averageSpeed: 0,
+        typeBreakdown: {}
       };
     }
     
-    const now = new Date();
-    const oneWeekAgo = new Date(now);
-    oneWeekAgo.setDate(now.getDate() - 7);
-    
+    // חישוב סך כל המשך והמרחק
     let totalDuration = 0;
-    let totalDistance = 0;
-    let weeklyDuration = 0;
-    let weeklyDistance = 0;
-    let weeklyActivities = 0;
+    let totalDistanceWithSpeed = 0;
+    let activitiesWithSpeed = 0;
+    
+    // מיפוי פעילויות לפי סוג
+    const typeMap: Record<string, { count: number, duration: number, distance: number }> = {};
     
     activities.forEach(activity => {
       totalDuration += activity.duration;
-      totalDistance += activity.distance || 0;
       
-      if (activity.date >= oneWeekAgo) {
-        weeklyDuration += activity.duration;
-        weeklyDistance += activity.distance || 0;
-        weeklyActivities++;
+      if (activity.distance) {
+        totalDistanceWithSpeed += activity.distance;
+        activitiesWithSpeed++;
+      }
+      
+      // עדכון מיפוי סוגי פעילויות
+      if (!typeMap[activity.type]) {
+        typeMap[activity.type] = { count: 0, duration: 0, distance: 0 };
+      }
+      
+      typeMap[activity.type].count++;
+      typeMap[activity.type].duration += activity.duration;
+      if (activity.distance) {
+        typeMap[activity.type].distance += activity.distance;
       }
     });
+    
+    // חישוב מהירות ממוצעת (רק על פעילויות עם מרחק)
+    const averageSpeed = activitiesWithSpeed > 0 
+      ? totalDistanceWithSpeed / (totalDuration / 60 * (activitiesWithSpeed / activities.length))
+      : 0;
     
     return {
       totalActivities: activities.length,
       totalDuration,
-      totalDistance: parseFloat(totalDistance.toFixed(1)),
-      weeklyActivities,
-      weeklyDuration,
-      weeklyDistance: parseFloat(weeklyDistance.toFixed(1))
+      totalDistance: totalDistanceWithSpeed,
+      averageSpeed,
+      typeBreakdown: typeMap
     };
   };
   
   const stats = calculateStats();
   
-  // פורמט תאריך בעברית
   const formatDate = (date: Date): string => {
-    const options: Intl.DateTimeFormatOptions = {
+    return date.toLocaleDateString('he-IL', {
       year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    };
-    return date.toLocaleDateString('he-IL', options);
+      month: '2-digit',
+      day: '2-digit'
+    });
   };
   
-  return (
-    <div className="space-y-6">
-      {/* כרטיסי סיכום */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card bg-green-50">
-          <div className="flex items-center">
-            <div className="bg-green-100 p-3 rounded-full ml-3">
-              <FiActivity className="text-green-600 text-xl" />
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">סה"כ פעילויות השבוע</h3>
-              <p className="text-2xl font-bold text-green-600">{stats.weeklyActivities}</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="card bg-blue-50">
-          <div className="flex items-center">
-            <div className="bg-blue-100 p-3 rounded-full ml-3">
-              <FiClock className="text-blue-600 text-xl" />
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">זמן אימון השבוע</h3>
-              <p className="text-2xl font-bold text-blue-600">{stats.weeklyDuration} דקות</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="card bg-purple-50">
-          <div className="flex items-center">
-            <div className="bg-purple-100 p-3 rounded-full ml-3">
-              <FiMapPin className="text-purple-600 text-xl" />
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">מרחק השבוע</h3>
-              <p className="text-2xl font-bold text-purple-600">{stats.weeklyDistance} ק"מ</p>
-            </div>
-          </div>
+  const formatDuration = (minutes: number): string => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    
+    if (hours > 0) {
+      return `${hours} שעות ${mins > 0 ? `ו-${mins} דקות` : ''}`;
+    }
+    
+    return `${mins} דקות`;
+  };
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="text-xl text-gray-500">טוען נתונים...</div>
         </div>
       </div>
+    );
+  }
+  
+  return (
+    <div className="space-y-3 sm:space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+        {/* כרטיס סטטיסטיקה */}
+        <motion.div
+          className="bg-white rounded-xl p-3 sm:p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <div className="absolute top-0 right-0 left-0 h-0.5 bg-gradient-to-r from-green-200 via-blue-200 to-purple-200"></div>
+          
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-bold text-gray-800 flex items-center">
+              <span className="w-9 h-9 flex items-center justify-center bg-green-500 rounded-full mr-4 text-white shadow-sm">
+                <FiActivity className="text-lg" />
+              </span>
+              סיכום פעילות
+            </h3>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsAddingActivity(true)}
+              className="w-9 h-9 flex items-center justify-center bg-green-500 rounded-full text-white shadow-sm hover:bg-green-600 transition-colors"
+            >
+              <FiPlusCircle size={18} />
+            </motion.button>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="text-sm text-gray-500 mb-1">סך פעילויות</div>
+              <div className="text-xl font-bold">{stats.totalActivities}</div>
+            </div>
+            
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="text-sm text-gray-500 mb-1">סך זמן</div>
+              <div className="text-xl font-bold">{formatDuration(stats.totalDuration)}</div>
+            </div>
+            
+            {stats.totalDistance > 0 && (
+              <>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="text-sm text-gray-500 mb-1">סך מרחק</div>
+                  <div className="text-xl font-bold">{stats.totalDistance.toFixed(1)} ק"מ</div>
+                </div>
+                
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="text-sm text-gray-500 mb-1">מהירות ממוצעת</div>
+                  <div className="text-xl font-bold">{stats.averageSpeed.toFixed(1)} קמ"ש</div>
+                </div>
+              </>
+            )}
+          </div>
+          
+          {activities.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-md font-medium text-gray-700 mb-2">התפלגות לפי סוג פעילות</h4>
+              <div className="space-y-2">
+                {Object.entries(stats.typeBreakdown).map(([type, data]) => (
+                  <div key={type} className="flex justify-between bg-gray-50 p-2 rounded-lg">
+                    <span className="font-medium">{type}</span>
+                    <span className="text-gray-500">{data.count} פעילויות ({formatDuration(data.duration)})</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </motion.div>
+        
+        {/* מידע על פעילות אחרונה */}
+        <motion.div
+          className="bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+        >
+          <div className="absolute top-0 right-0 left-0 h-0.5 bg-gradient-to-r from-blue-200 via-indigo-200 to-purple-200"></div>
+          
+          <h3 className="text-lg font-bold text-gray-800 mb-4">פעילויות אחרונות</h3>
+          
+          <div className="max-h-[260px] overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+            {activities.length === 0 ? (
+              <div className="text-center py-4 text-gray-500">
+                <p>אין פעילויות גופניות להצגה.</p>
+                <button
+                  onClick={() => setIsAddingActivity(true)}
+                  className="mt-2 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
+                >
+                  הוסף פעילות ראשונה
+                </button>
+              </div>
+            ) : (
+              [...activities].reverse().slice(0, 5).map((activity) => (
+                <div 
+                  key={activity.id} 
+                  className="p-3 border border-gray-200 rounded-lg hover:shadow-sm transition-shadow"
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <span className={`w-8 h-8 flex items-center justify-center rounded-full mr-3 ${
+                        activity.type === 'הליכון' ? 'bg-blue-100 text-blue-600' :
+                        activity.type === 'ריצה' ? 'bg-green-100 text-green-600' :
+                        'bg-purple-100 text-purple-600'
+                      }`}>
+                        <FiActivity />
+                      </span>
+                      <div>
+                        <div className="font-medium">{activity.type}</div>
+                        <div className="text-sm text-gray-500">
+                          {formatDate(activity.date)}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex space-x-2 space-x-reverse">
+                      {!activity.fromCalendar && (
+                        <button 
+                          onClick={() => openEditForm(activity)}
+                          className="p-1.5 text-blue-500 hover:text-blue-600"
+                          title="ערוך"
+                        >
+                          <FiEdit size={16} />
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => deleteActivity(activity.id)}
+                        className="p-1.5 text-red-500 hover:text-red-600"
+                        title="מחק"
+                        disabled={activity.fromCalendar}
+                      >
+                        <FiTrash2 size={16} className={activity.fromCalendar ? 'opacity-30' : ''} />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-2 flex flex-wrap gap-3">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <FiClock className="ml-1" />
+                      <span>{formatDuration(activity.duration)}</span>
+                    </div>
+                    
+                    {activity.distance && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <FiMapPin className="ml-1" />
+                        <span>{activity.distance.toFixed(1)} ק"מ</span>
+                      </div>
+                    )}
+                    
+                    {activity.speed && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <span className="ml-1">⚡</span>
+                        <span>{activity.speed.toFixed(1)} קמ"ש</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </motion.div>
+      </div>
       
-      {/* רשימת פעילויות */}
-      <div className="card">
+      {/* טבלת פעילויות */}
+      <motion.div
+        className="bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 relative border border-gray-100"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
+      >
+        <div className="absolute top-0 right-0 left-0 h-0.5 bg-gradient-to-r from-purple-200 via-pink-200 to-red-200"></div>
+        
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">מעקב פעילות גופנית</h2>
-          <button
+          <h3 className="text-lg font-bold text-gray-800">כל הפעילויות</h3>
+          
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setIsAddingActivity(true)}
-            className="btn-primary text-sm flex items-center"
+            className="px-3 py-1 text-sm bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors flex items-center"
           >
-            <FiPlusCircle className="ml-1" />
-            הוסף פעילות
-          </button>
+            <FiPlusCircle size={14} className="ml-1" />
+            <span>הוסף פעילות</span>
+          </motion.button>
         </div>
         
         {activities.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="w-full text-sm text-right">
+              <thead className="text-xs uppercase bg-gray-50 rounded-lg">
                 <tr>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">תאריך</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">סוג פעילות</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">משך (דקות)</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">מרחק (ק"מ)</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">מהירות (קמ"ש)</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">פעולות</th>
+                  <th className="px-4 py-2 font-medium text-gray-500">תאריך</th>
+                  <th className="px-4 py-2 font-medium text-gray-500">סוג</th>
+                  <th className="px-4 py-2 font-medium text-gray-500">משך</th>
+                  <th className="px-4 py-2 font-medium text-gray-500">מרחק</th>
+                  <th className="px-4 py-2 font-medium text-gray-500">מהירות</th>
+                  <th className="px-4 py-2 font-medium text-gray-500">מקור</th>
+                  <th className="px-4 py-2 font-medium text-gray-500">פעולות</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {activities.map((activity) => (
-                  <tr key={activity.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDate(activity.date)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{activity.type}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{activity.duration}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{activity.distance ? activity.distance : '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {activity.speed ? activity.speed.toFixed(1) : '-'}
+              <tbody>
+                {[...activities].reverse().map((activity) => (
+                  <tr key={activity.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium">
+                      {formatDate(activity.date)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex space-x-2 space-x-reverse">
-                      <button 
-                        onClick={() => deleteActivity(activity.id)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <FiTrash2 />
-                      </button>
+                    <td className="px-4 py-3">{activity.type}</td>
+                    <td className="px-4 py-3">{formatDuration(activity.duration)}</td>
+                    <td className="px-4 py-3">
+                      {activity.distance ? `${activity.distance.toFixed(1)} ק"מ` : '-'}
+                    </td>
+                    <td className="px-4 py-3">
+                      {activity.speed ? `${activity.speed.toFixed(1)} קמ"ש` : '-'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {activity.fromCalendar ? 'לוח שנה' : 'ידני'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex space-x-2 space-x-reverse">
+                        {!activity.fromCalendar && (
+                          <button 
+                            onClick={() => openEditForm(activity)}
+                            className="text-blue-500 hover:text-blue-700 transition-colors p-1"
+                            title="ערוך"
+                          >
+                            <FiEdit size={16} />
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => deleteActivity(activity.id)}
+                          className="text-red-500 hover:text-red-700 transition-colors p-1"
+                          title="מחק"
+                          disabled={activity.fromCalendar}
+                        >
+                          <FiTrash2 size={16} className={activity.fromCalendar ? 'opacity-30' : ''} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -349,84 +425,105 @@ const ActivityTracker = () => {
             </table>
           </div>
         ) : (
-          <p className="text-center text-gray-500 py-8">אין פעילויות גופניות, הוסף את הפעילות הראשונה שלך!</p>
+          <div className="text-center py-8 text-gray-500">
+            <p>אין פעילויות גופניות להצגה.</p>
+            <button
+              onClick={() => setIsAddingActivity(true)}
+              className="mt-2 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
+            >
+              הוסף פעילות ראשונה
+            </button>
+          </div>
         )}
-      </div>
+      </motion.div>
       
-      {/* טופס הוספת פעילות */}
-      {isAddingActivity && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl max-w-2xl w-full">
-            <h3 className="text-lg font-semibold mb-4">הוספת פעילות גופנית</h3>
-            
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">סוג פעילות</label>
-                  <select
-                    value={newActivityType}
-                    onChange={(e) => setNewActivityType(e.target.value)}
-                    className="input-field"
-                  >
-                    {activityTypes.map((type) => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">תאריך</label>
-                  <input
-                    type="date"
-                    value={newActivityDate}
-                    onChange={(e) => setNewActivityDate(e.target.value)}
-                    className="input-field"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">משך (דקות)</label>
-                  <input
-                    type="number"
-                    value={newActivityDuration}
-                    onChange={(e) => setNewActivityDuration(e.target.value)}
-                    placeholder="למשל: 30"
-                    className="input-field"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">מרחק (ק"מ, אופציונלי)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={newActivityDistance}
-                    onChange={(e) => setNewActivityDistance(e.target.value)}
-                    placeholder="למשל: 2.5"
-                    className="input-field"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex justify-end space-x-4 space-x-reverse mt-6">
-                <button
-                  onClick={() => setIsAddingActivity(false)}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                >
-                  ביטול
-                </button>
-                <button
-                  onClick={addActivity}
-                  className="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600"
-                  disabled={!newActivityType || !newActivityDuration || isNaN(Number(newActivityDuration)) || Number(newActivityDuration) <= 0}
-                >
-                  הוסף פעילות
-                </button>
+      {/* מודאל להוספת פעילות */}
+      <Modal
+        isOpen={isAddingActivity}
+        onClose={resetForm}
+        title={editingActivity ? "עריכת פעילות גופנית" : "הוספת פעילות גופנית"}
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">תאריך</label>
+            <input
+              type="date"
+              value={newActivityDate}
+              onChange={(e) => setNewActivityDate(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">סוג פעילות</label>
+            <select
+              value={newActivityType}
+              onChange={(e) => setNewActivityType(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              {activityTypes.map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">משך זמן (דקות)</label>
+            <input
+              type="number"
+              value={newActivityDuration}
+              onChange={(e) => setNewActivityDuration(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="לדוגמה: 30"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              מרחק (ק"מ) - אופציונלי
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              value={newActivityDistance}
+              onChange={(e) => setNewActivityDistance(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="לדוגמה: 2.5"
+            />
+          </div>
+          
+          {newActivityDuration && newActivityDistance && !isNaN(Number(newActivityDuration)) && !isNaN(Number(newActivityDistance)) && (
+            <div className="p-3 bg-blue-50 rounded-md">
+              <div className="text-sm text-blue-700 mb-1">מהירות מחושבת:</div>
+              <div className="font-bold text-blue-800">
+                {(Number(newActivityDistance) / (Number(newActivityDuration) / 60)).toFixed(1)} קמ"ש
               </div>
             </div>
+          )}
+          
+          <div className="flex justify-end space-x-4 space-x-reverse pt-2">
+            <button
+              onClick={resetForm}
+              className="px-4 py-2 text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              ביטול
+            </button>
+            
+            <button
+              onClick={handleAddActivity}
+              className="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+              disabled={
+                !newActivityType || 
+                !newActivityDuration || 
+                isNaN(Number(newActivityDuration)) || 
+                Number(newActivityDuration) <= 0
+              }
+            >
+              {editingActivity ? "עדכן" : "הוסף"}
+            </button>
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 };
